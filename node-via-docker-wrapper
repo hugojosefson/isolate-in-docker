@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+
+[ -t 1 ] && TTY_ARG="--tty" || TTY_ARG=""
+EXECUTABLE="$(basename "${0}")"
+NODE_VERSION=${NODE_VERSION:-lts}
+
+docker run \
+  --rm \
+  --interactive \
+  ${TTY_ARG} \
+  --workdir "$(pwd)" \
+  --volume "$(pwd)":"$(pwd)" \
+  --user "$(id -u)":"$(id -g)" \
+  ${NODE_VIA_DOCKER_EXTRA_ARGS} \
+  node:${NODE_VERSION} \
+  ${EXECUTABLE} "$@"
