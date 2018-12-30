@@ -1,9 +1,0 @@
-# Ideas to perhaps base code on
-
-alias nn='nodeversion=$(cat package.json | jq -r .engines.node); nvm install $nodeversion'
-alias node='git config --add user.email "$(git config user.email)" && git config --add user.name "$(git config user.name)" && docker run --rm -i -w "$(pwd)" -v "$(pwd)":"$(pwd)" --user "$(id -u)":"$(id -g)" node node'
-alias node-bash='git config --add user.email "$(git config user.email)" && git config --add user.name "$(git config user.name)" && docker run --rm -it -w "$(pwd)" -v "$(pwd)":"$(pwd)" --user "$(id -u)":"$(id -g)" node bash'
-alias npm='git config --add user.email "$(git config user.email)" && git config --add user.name "$(git config user.name)" && docker run --rm -i -w "$(pwd)" -v "$(pwd)":"$(pwd)" --user "$(id -u)":"$(id -g)" -e GIT_AUTHOR_EMAIL="$(git config user.email)" -e GIT_AUTHOR_NAME="$(git config user.name)" node npm'
-alias npm-authed='git config --add user.email "$(git config user.email)" && git config --add user.name "$(git config user.name)" && mkdir -p "$HOME/.npm" && touch "$HOME/.npmrc" && docker run --rm -it -w "$(pwd)" -v "$(pwd)":"$(pwd)" --user "$(id -u)":"$(id -g)" -v "$(mktemp -d)":"$HOME" -v "$HOME/.npmrc":"$HOME/.npmrc" -v "$HOME/.npm":"$HOME/.npm" -e HOME="$HOME" node npm'
-alias npx='docker run --rm -i -w "$(pwd)" -v "$(pwd)":"$(pwd)" --user "$(id -u)":"$(id -g)" node npx'
-alias yarn='git config --add user.email "$(git config user.email)" && git config --add user.name "$(git config user.name)" && docker run --rm -i -w "$(pwd)" -v "$(pwd)":"$(pwd)" --user "$(id -u)":"$(id -g)" node yarn'

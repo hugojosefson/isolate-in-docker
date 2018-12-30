@@ -1,17 +1,79 @@
 #!/usr/bin/env bash
+## This file is not meant to be executed directly.
+## It should be executed via a symlink, named the same as the executable you wish to execute inside the Docker image.
+
+## Documentation at https://github.com/hugojosefson/node-via-docker-wrapper#readme
+
+# Fail on any error
 set -e
 
-[ -t 1 ] && TTY_ARG="--tty" || TTY_ARG=""
-EXECUTABLE="$(basename "${0}")"
-NODE_VERSION=${NODE_VERSION:-lts}
+# Configurable env variables
+NODE_VERSION="${NODE_VERSION:-lts}"
+DOCKER_IMAGE="${DOCKER_IMAGE:-node:${NODE_VERSION}}"
+
+NODE_VIA_DOCKER_USER=${NODE_VIA_DOCKER_USER:-"$(id -u)":"$(id -g)"}
+NODE_VIA_DOCKER_WORKDIR="${NODE_VIA_DOCKER_WORKDIR:-$(pwd)}"
+NODE_VIA_DOCKER_WORKDIR="$(cd ${NODE_VIA_DOCKER_WORKDIR} && pwd)"
+NODE_VIA_DOCKER_EXTRA_ARGS="${NODE_VIA_DOCKER_EXTRA_ARGS:-}"
+NODE_VIA_DOCKER_EXECUTABLE="${NODE_VIA_DOCKER_EXECUTABLE:-$(basename "${0}")}"
+NODE_VIA_DOCKER_CACHE_BASE="${NODE_VIA_DOCKER_CACHE_BASE:-${HOME}/.cache/node-via-docker}"
+NODE_VIA_DOCKER_CACHE_IDENTIFIER="${NODE_VIA_DOCKER_CACHE_IDENTIFIER:-${NODE_VIA_DOCKER_WORKDIR}}"
+NODE_VIA_DOCKER_CACHE="${NODE_VIA_DOCKER_CACHE:-${NODE_VIA_DOCKER_CACHE_BASE}${NODE_VIA_DOCKER_CACHE_IDENTIFIER}}"
+
+# Numeric booleans, for legibility
+true=0
+false=1
+
+# Are we in a TTY?
+function isTTY() {
+  if [[ -t 1 ]]; then
+    return ${true}
+  else
+    return ${false}
+  fi
+}
+
+# Is current directory a git repository?
+function isGitRepo() {
+  if [[ -d .git ]]; then
+    return ${true}
+  else
+    return ${false}
+  fi
+}
+
+# Write current git user config to local repo, so it is visible inside the Docker container.
+function writeGitUserToConfig() {
+  gitEmail="$(git config user.email)"
+  gitName="$(git config user.name)"
+  git config --unset-all user.email
+  git config --unset-all user.name
+  git config --add user.email "${gitEmail}"
+  git config --add user.name "${gitName}"
+}
+
+# Program starts here
+if isTTY; then
+  TTY_ARG="--tty"
+else
+  TTY_ARG=""
+fi
+
+if isGitRepo; then
+  writeGitUserToConfig
+fi
+
+mkdir -p "${NODE_VIA_DOCKER_CACHE}/home"
 
 docker run \
   --rm \
   --interactive \
   ${TTY_ARG} \
-  --workdir "$(pwd)" \
-  --volume "$(pwd)":"$(pwd)" \
-  --user "$(id -u)":"$(id -g)" \
+  --user ${NODE_VIA_DOCKER_USER} \
+  --workdir "${NODE_VIA_DOCKER_WORKDIR}" \
+  --volume "${NODE_VIA_DOCKER_WORKDIR}":"${NODE_VIA_DOCKER_WORKDIR}" \
+  --volume "${NODE_VIA_DOCKER_CACHE}/home":"${HOME}" \
+  --env HOME="${HOME}" \
   ${NODE_VIA_DOCKER_EXTRA_ARGS} \
-  node:${NODE_VERSION} \
-  ${EXECUTABLE} "$@"
+  ${DOCKER_IMAGE} \
+  ${NODE_VIA_DOCKER_EXECUTABLE} "$@"

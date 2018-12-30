@@ -45,19 +45,33 @@ npm test
 npx cowsay It works!
 ```
 
-Note that only the current directory is available inside the docker instance
-running each command. This should limit exposure.
+Note that only the current directory where you call the script from, is
+available inside the docker instance. See `NODE_VIA_DOCKER_WORKDIR`
+below.
 
-### With access to NPM authentication inside Docker
+### Configuration options
 
-For authentication related `npm` commands, such as `npm adduser` and `npm
-publish`. You need access to your `~/.npm` directory and the `~/.npmrc` file
-which contains your NPM credentials.
+Options are configured with environment variables.
 
-Then use it like this:
+*(Table via
+[tablesgenerator.com](https://www.tablesgenerator.com/markdown_tables))*
+
+| Environment variable         | Specifies                                                                                                                                                  | Default value                                                                             | Example values                                                                                              | Valid values                                          |
+|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| `NODE_VERSION`               | Version of Node.js to use.                                                                                                                                 | `lts`                                                                                     | `8`, `10.2.2`, `stable`                                                                                     | Tags from https://hub.docker.com/_/node               |
+| `PORT`*                      | Port number to pass through to the container's environment, and to `--publish`.                                                                            | `""`                                                                                      | `8000`, `1234`                                                                                              | Any port number.                                      |
+| `DOCKER_IMAGE`               | Docker image to use.                                                                                                                                       | `node:$NODE_VERSION`                                                                      | `my-special-node:latest`                                                                                    | Any valid Docker image reference.                     |
+| `NODE_VIA_DOCKER_USER`       | User, or `user:group` to become inside the container.                                                                                                      | Current user and group: `$(id -u):$(id -g)`                                               | `root`, `1000`, `1000:1000`                                                                                 | https://docs.docker.com/engine/reference/run/#user    |
+| `NODE_VIA_DOCKER_WORKDIR`    | Where to execute the command inside the container. ***NOTE: Directory is shared with the container.***                                                     | Current directory: `$(pwd)`                                                               | `..`, `/tmp/somedir`                                                                                        | https://docs.docker.com/engine/reference/run/#workdir |
+| `NODE_VIA_DOCKER_EXTRA_ARGS` | Any extra arguments to `docker run`.                                                                                                                       | `""`                                                                                      | `"--volume /opt/extralibs:/opt/extralibs"`,  `"--volume /opt/extralibs:/opt/extralibs --publish 8001:8001"` | https://docs.docker.com/engine/reference/run/         |
+| `NODE_VIA_DOCKER_EXECUTABLE` | The executable to run inside the container: `node`, `npm` etc.                                                                                             | Name of the symlink pointing to this script: `$(basename "${0}")`                         | `bash`                                                                                                      | Any valid executable inside the Docker container.     |
+| `NODE_VIA_DOCKER_CACHE`      | Directory on the host to hold the container's `$HOME` directory, which includes any cached `.npm/`, `.npmrc`, which may include login information for NPM. | Unique directory per workdir: `${HOME}/.cache/node-via-docker}${NODE_VIA_DOCKER_WORKDIR}` | `/tmp/common-npm-cache`                                                                                     | Any directory on the host, or unset to disable it.    |
+|                              |                                                                                                                                                            |                                                                                           |                                                                                                             |                                                       |
+
+\* = Not yet implemented. Use `NODE_VIA_DOCKER_EXTRA_ARGS` for now, for
+example like this:
 
 ```bash
-# TODO: Add relevant change.
-npm adduser
-npm publish
+export PORT=3000
+NODE_VIA_DOCKER_EXTRA_ARGS="-e PORT=$PORT -p $PORT:$PORT" npm start
 ```
