@@ -84,3 +84,10 @@ PORT=3000 NODE_VERSION=8 npm start
 PORT=3000 npx serve
 
 ```
+
+## TODO
+
+* Calculate `NODE_VIA_DOCKER_CACHE_IDENTIFIER` as `s/[^a-z0-9+=.-]//gi`
+of workdir, plus a hash of workdir.
+* Support a `node-via-docker.rc` in `NODE_VIA_DOCKER_CACHE`, which is
+sourced for default configuration.
