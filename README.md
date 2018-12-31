@@ -47,7 +47,7 @@ npx cowsay It works!
 ```
 
 Note that only the current directory where you call the script from, is
-available inside the docker instance. See `NODE_VIA_DOCKER_WORKDIR`
+available inside the docker instance. See `DOCKER_WORKDIR`
 below.
 
 ### Configuration options
@@ -62,11 +62,11 @@ Options are configured with environment variables.
 | `NODE_VERSION`               | Version of Node.js to use.                                                                                                                                 | `lts`                                                                                     | `8`, `10.2.2`, `stable`                                                                                     | Tags from https://hub.docker.com/_/node               |
 | `PORT`                       | Port number to pass through to the container's environment, and to `--publish`.                                                                            | `""`                                                                                      | `8000`, `1234`                                                                                              | Any port number.                                      |
 | `DOCKER_IMAGE`               | Docker image to use.                                                                                                                                       | `node:$NODE_VERSION`                                                                      | `my-special-node:latest`                                                                                    | Any valid Docker image reference.                     |
-| `NODE_VIA_DOCKER_USER`       | User, or `user:group` to become inside the container.                                                                                                      | Current user and group: `$(id -u):$(id -g)`                                               | `root`, `1000`, `1000:1000`                                                                                 | https://docs.docker.com/engine/reference/run/#user    |
-| `NODE_VIA_DOCKER_WORKDIR`    | Where to execute the command inside the container. ***NOTE: Directory is shared with the container.***                                                     | Current directory: `$(pwd)`                                                               | `..`, `/tmp/somedir`                                                                                        | https://docs.docker.com/engine/reference/run/#workdir |
-| `NODE_VIA_DOCKER_EXTRA_ARGS` | Any extra arguments to `docker run`.                                                                                                                       | `""`                                                                                      | `"--volume /opt/extralibs:/opt/extralibs"`,  `"--volume /opt/extralibs:/opt/extralibs --publish 8001:8001"` | https://docs.docker.com/engine/reference/run/         |
-| `NODE_VIA_DOCKER_EXECUTABLE` | The executable to run inside the container: `node`, `npm` etc.                                                                                             | Name of the symlink pointing to this script: `$(basename "${0}")`                         | `bash`                                                                                                      | Any valid executable inside the Docker container.     |
-| `NODE_VIA_DOCKER_CACHE`      | Directory on the host to hold the container's `$HOME` directory, which includes any cached `.npm/`, `.npmrc`, which may include login information for NPM. | Unique directory per workdir: `${HOME}/.cache/node-via-docker}${NODE_VIA_DOCKER_WORKDIR}` | `/tmp/common-npm-cache`                                                                                     | Any directory on the host, or unset to disable it.    |
+| `DOCKER_USER`       | User, or `user:group` to become inside the container.                                                                                                      | Current user and group: `$(id -u):$(id -g)`                                               | `root`, `1000`, `1000:1000`                                                                                 | https://docs.docker.com/engine/reference/run/#user    |
+| `DOCKER_WORKDIR`    | Where to execute the command inside the container. ***NOTE: Directory is shared with the container.***                                                     | Current directory: `$(pwd)`                                                               | `..`, `/tmp/somedir`                                                                                        | https://docs.docker.com/engine/reference/run/#workdir |
+| `DOCKER_EXTRA_ARGS` | Any extra arguments to `docker run`.                                                                                                                       | `""`                                                                                      | `"--volume /opt/extralibs:/opt/extralibs"`,  `"--volume /opt/extralibs:/opt/extralibs --publish 8001:8001"` | https://docs.docker.com/engine/reference/run/         |
+| `DOCKER_EXECUTABLE` | The executable to run inside the container: `node`, `npm` etc.                                                                                             | Name of the symlink pointing to this script: `$(basename "${0}")`                         | `bash`                                                                                                      | Any valid executable inside the Docker container.     |
+| `DOCKER_CACHE`      | Directory on the host to hold the container's `$HOME` directory, which includes any cached `.npm/`, `.npmrc`, which may include login information for NPM. | Unique directory per workdir: `${HOME}/.cache/node-via-docker}${DOCKER_WORKDIR}` | `/tmp/common-npm-cache`                                                                                     | Any directory on the host, or unset to disable it.    |
 |                              |                                                                                                                                                            |                                                                                           |                                                                                                             |                                                       |
 
 ### Examples
@@ -87,7 +87,7 @@ PORT=3000 npx serve
 
 ## TODO
 
-* Calculate `NODE_VIA_DOCKER_CACHE_IDENTIFIER` as `s/[^a-z0-9+=.-]//gi`
+* Calculate `DOCKER_CACHE_IDENTIFIER` as `s/[^a-z0-9+=.-]//gi`
 of workdir, plus a hash of workdir.
-* Support a `node-via-docker.rc` in `NODE_VIA_DOCKER_CACHE`, which is
+* Support a `node-via-docker.rc` in `DOCKER_CACHE`, which is
 sourced for default configuration.
