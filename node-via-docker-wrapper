@@ -16,9 +16,9 @@ DOCKER_WORKDIR="${DOCKER_WORKDIR:-$(pwd)}"
 DOCKER_WORKDIR="$(cd ${DOCKER_WORKDIR} && pwd)"
 DOCKER_EXTRA_ARGS="${DOCKER_EXTRA_ARGS:-}"
 DOCKER_EXECUTABLE="${DOCKER_EXECUTABLE:-$(basename "${0}")}"
-DOCKER_CACHE_BASE="${DOCKER_CACHE_BASE:-${HOME}/.cache/node-via-docker}"
-DOCKER_CACHE_IDENTIFIER="${DOCKER_CACHE_IDENTIFIER:-${DOCKER_WORKDIR}}"
-DOCKER_CACHE="${DOCKER_CACHE:-${DOCKER_CACHE_BASE}${DOCKER_CACHE_IDENTIFIER}}"
+CACHE_BASE="${CACHE_BASE:-${HOME}/.cache/node-via-docker}"
+CACHE_IDENTIFIER="${CACHE_IDENTIFIER:-${DOCKER_WORKDIR}}"
+CACHE_DIR="${CACHE_DIR:-${CACHE_BASE}${CACHE_IDENTIFIER}}"
 
 # Numeric booleans, for legibility
 true=0
@@ -69,7 +69,7 @@ else
   PORT_ARGS=""
 fi
 
-mkdir -p "${DOCKER_CACHE}/home"
+mkdir -p "${CACHE_DIR}/home"
 
 docker run \
   --rm \
@@ -78,7 +78,7 @@ docker run \
   --user ${DOCKER_USER} \
   --workdir "${DOCKER_WORKDIR}" \
   --volume "${DOCKER_WORKDIR}":"${DOCKER_WORKDIR}" \
-  --volume "${DOCKER_CACHE}/home":"${HOME}" \
+  --volume "${CACHE_DIR}/home":"${HOME}" \
   --env HOME="${HOME}" \
   ${PORT_ARGS} \
   ${DOCKER_EXTRA_ARGS} \
