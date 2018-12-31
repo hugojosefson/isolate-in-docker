@@ -66,7 +66,8 @@ Options are configured with environment variables.
 | `DOCKER_WORKDIR`     | Where to execute the command inside the container. ***NOTE: Directory is shared with the container.***                                                                                                            | Current directory: `$(pwd)`                                                | `..`, `/tmp/somedir`                                                                                        | https://docs.docker.com/engine/reference/run/#workdir |
 | `DOCKER_EXTRA_ARGS`  | Any extra arguments to `docker run`.                                                                                                                                                                              | `""`                                                                       | `"--volume /opt/extralibs:/opt/extralibs"`,  `"--volume /opt/extralibs:/opt/extralibs --publish 8001:8001"` | https://docs.docker.com/engine/reference/run/         |
 | `DOCKER_EXECUTABLE`  | The executable to run inside the container: `node`, `npm` etc.                                                                                                                                                    | Name of the symlink pointing to this script: `$(basename "${0}")`          | `bash`                                                                                                      | Any valid executable inside the Docker container.     |
-| `CACHE_DIR`          | Directory on the host to hold the container's `$HOME` directory, which includes any cached `.npm/`, `.npmrc`, from previous executions with the same `DOCKER_WORKDIR`. May any include login information for NPM. | Unique directory per workdir located in `${HOME}/.cache/node-via-docker}`. | `/tmp/common-npm-cache`                                                                                     | Any directory on the host.                            |
+| `CACHE_DIR`          | Directory on the host to hold the container's `$HOME` directory, which includes any cached `.npm/`, `.npmrc`, from previous executions with the same `DOCKER_WORKDIR`. May any include login information for NPM. | Unique directory per workdir located in `${HOME}/.cache/node-via-docker}`. | `/var/cache/common-npm-cache`                                                                               | Any directory on the host.                            |
+| `CONFIG_DIR`         | Directory on the host to hold the container's config files.                                                                                                                                                       | Unique directory per workdir located in `${HOME}/.config/node-via-docker}` | `/etc/node-via-docker`                                                                                      | Any directory on the host.                            |
 
 ### Examples
 
@@ -84,8 +85,24 @@ PORT=3000 npx serve
 
 ```
 
-## TODO
+### Config files (`*.rc`) in `CONFIG_DIR`
 
-* Support a `default.rc`, `node.rc`, `npm.rc` etc in `CONFIG_DIR`, which
-is sourced for configuration by each of the tools, falling back to
-`default.rc`.
+You may place configuration files in `CONFIG_DIR` to specify defaults
+for any environment variables. They will be sourced before evaluating
+the environment.
+
+Configuration files are named as the executable they will be loaded
+with, suffixed by `.rc`. For example, to add default config for `npx`,
+create a file `${CONFIG_DIR}/npx.rc` with for example this content:
+
+```bash
+NODE_VERSION=10
+DOCKER_WORKDIR=/tmp/npx-workdir
+```
+
+Default file loaded first for all commands, is
+`${CONFIG_DIR}/default.rc`.
+
+*TIP: The `CONFIG_DIR` for the current working directory will be created
+on the first execution of either command. Run for example `node
+--version` to get the `CONFIG_DIR` created for you.*
