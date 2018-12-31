@@ -38,23 +38,17 @@ function isTTY() {
   fi
 }
 
-# Is current directory a git repository?
-function isGitRepo() {
-  if [[ -d .git ]]; then
-    return ${true}
-  else
-    return ${false}
-  fi
-}
-
-# Write current git user config to local repo, so it is visible inside the Docker container.
+# Write current git user config to ${CACHE_DIR}/home, so it is visible inside the Docker container.
 function writeGitUserToConfig() {
-  gitEmail="$(git config user.email)"
-  gitName="$(git config user.name)"
-  git config --unset-all user.email
-  git config --unset-all user.name
-  git config --add user.email "${gitEmail}"
-  git config --add user.name "${gitName}"
+  local gitEmail="$(git config user.email)"
+  local gitName="$(git config user.name)"
+
+  mkdir -p "${CACHE_DIR}/home"
+  touch "${CACHE_DIR}/home/.gitconfig"
+  git config --file "${CACHE_DIR}/home/.gitconfig" --unset-all user.email || true
+  git config --file "${CACHE_DIR}/home/.gitconfig" --unset-all user.name || true
+  git config --file "${CACHE_DIR}/home/.gitconfig" --add user.email "${gitEmail}"
+  git config --file "${CACHE_DIR}/home/.gitconfig" --add user.name "${gitName}"
 }
 
 # Program starts here
@@ -64,17 +58,13 @@ else
   TTY_ARG=""
 fi
 
-if isGitRepo; then
-  writeGitUserToConfig
-fi
+writeGitUserToConfig
 
 if [[ ! -z "${PORT}" ]]; then
   PORT_ARGS="--env PORT=${PORT} --publish ${PORT}:${PORT}"
 else
   PORT_ARGS=""
 fi
-
-mkdir -p "${CACHE_DIR}/home"
 
 docker run \
   --rm \
