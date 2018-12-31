@@ -106,3 +106,16 @@ Default file loaded first for all commands, is
 *TIP: The `CONFIG_DIR` for the current working directory will be created
 on the first execution of either command. Run for example `node
 --version` to get the `CONFIG_DIR` created for you.*
+
+## Troubleshooting
+
+### Husky
+
+If you use `husky` to help with git hooks, it may fail because of TTY issues.
+
+Run this command to fix the current git repo:
+
+```bash
+sed -r 's/(run-node.*)/\1 < \/dev\/tty/g' -i .git/hooks/*
+```
+
