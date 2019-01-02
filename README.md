@@ -12,7 +12,7 @@ on for example `npmjs.com`.
 ### Prerequisites
 
 First, make sure you don't have any Node.js or Heroku CLI installation
-left. Each of these commands *should fail*:
+left. Each of these commands *should find nothing*:
 
 ```bash
 which node
@@ -22,8 +22,7 @@ which yarn
 which heroku
 ```
 
-If they don't fail, but instead find any executable, uninstall them and
-try again.
+If they find any executable(s), uninstall them and try again.
 
 ### Actual installation
 
