@@ -74,7 +74,8 @@ Options are configured with environment variables.
 Some examples using the environment variables for configuration:
 
 ```bash
-# Start the current project passing `PORT=3000` to the app, and publishing port 3000 to the host
+# Start the current project passing `PORT=3000` to the app,
+# and publishing port 3000 to the host
 PORT=3000 npm start
 
 # Same, using Node.js version 8:
@@ -111,7 +112,8 @@ on the first execution of either command. Run for example `node
 
 ### Husky
 
-If you use `husky` to help with git hooks, it may fail because of TTY issues.
+If you use `husky` to help with git hooks, it may fail because of TTY
+issues.
 
 Run this command to fix the current git repo:
 
