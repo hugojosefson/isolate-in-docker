@@ -100,8 +100,7 @@ Please see https://github.com/hugojosefson/isolate-in-docker#readme for installa
 # Configurable env variables
 readConfigFiles
 
-DOCKER_IMAGE="$(getDockerImage)" # TODO extract, and add awscli, heroku
-
+DOCKER_IMAGE="$(getDockerImage)"
 DOCKER_USER=$(getDockerUser)
 DOCKER_WORKDIR="$(getDockerWorkdir)"
 DOCKER_EXECUTABLE="$(getDockerExecutable)"
