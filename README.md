@@ -1,6 +1,6 @@
 # isolate-in-docker
 
-Wrapper scripts for running Node.js, Heroku CLI in isolation, where they
+Wrapper script for running Node.js, Heroku CLI in isolation, where they
 only have access to current directory.
 
 Lets you keep Node.js and Heroku CLI uninstalled in your main
