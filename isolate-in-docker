@@ -157,6 +157,7 @@ docker run \
   --volume "${DOCKER_WORKDIR}":"${DOCKER_WORKDIR}" \
   --volume "${CACHE_DIR}/home":"${HOME}" \
   --env HOME="${HOME}" \
+  --env WEBIDE_VM_OPTIONS="-Duser.home=${HOME}" \
   --volume /tmp/.X11-unix:/tmp/.X11-unix \
   --env DISPLAY="$DISPLAY" \
   ${PORT_ARGS} \
