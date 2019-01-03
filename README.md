@@ -34,6 +34,7 @@ ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/npm
 ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/npx
 ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/yarn
 ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/heroku
+ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/webstorm
 ```
 
 ## Usage
@@ -48,6 +49,8 @@ npm test
 npx cowsay It works!
 
 heroku --help
+
+webstorm .
 ```
 
 Note that only the current directory where you call the script from, is
