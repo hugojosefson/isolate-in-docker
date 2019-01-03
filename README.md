@@ -38,6 +38,7 @@ If they find any executable(s), uninstall them and try again.
 && ln -s isolate-in-docker yarn \
 && ln -s isolate-in-docker heroku \
 && ln -s isolate-in-docker webstorm \
+&& ln -s isolate-in-docker jetbrains-toolbox \
 && ln -s isolate-in-docker aws \
 )
 ```
