@@ -30,8 +30,8 @@ If they find any executable(s), uninstall them and try again.
 ```bash
 ( \
    cd /usr/local/bin \
-&& curl https://raw.githubusercontent.com/hugojosefson/isolate-in-docker/master/nisolate-in-docker -o isolate-in-docker \
-&& chmod +x isolate-in-docker
+&& curl https://raw.githubusercontent.com/hugojosefson/isolate-in-docker/master/isolate-in-docker -o isolate-in-docker \
+&& chmod +x isolate-in-docker \
 && ln -s isolate-in-docker node \
 && ln -s isolate-in-docker npm \
 && ln -s isolate-in-docker npx \
