@@ -153,6 +153,16 @@ function isHusky() {
   fi
 }
 
+# Do we have git installed?
+function haveGit() {
+  command -v git >/dev/null
+}
+
+# Is current directory a git repo?
+function isGitRepo() {
+  [[ -d ".git" ]]
+}
+
 # Write current git user config to ${CACHE_DIR}/home, so it is visible inside the Docker container.
 function writeGitUserToConfig() {
   local gitEmail="$(git config user.email)"
@@ -174,7 +184,7 @@ else
   TTY_ARG=""
 fi
 
-writeGitUserToConfig
+haveGit && isGitRepo && writeGitUserToConfig
 
 if [[ ! -z "${PORT}" ]]; then
   PORT_ARGS="--env PORT=${PORT} --publish ${PORT}:${PORT}"
