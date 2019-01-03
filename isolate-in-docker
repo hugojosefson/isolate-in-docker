@@ -83,8 +83,10 @@ function withoutTag() {
 function getDockerImage() {
   if [[ ! -z "${DOCKER_IMAGE}" ]]; then
     echo "${DOCKER_IMAGE}"
-  elif [[ "$(getDockerExecutable)" =~ ^(node|npm|npx|yarn|bash)$ ]]; then
+  elif [[ "$(getDockerExecutable)" =~ ^(node|npm|npx|yarn)$ ]]; then
     echo "node:${NODE_VERSION:-lts}"
+  elif [[ "$(getDockerExecutable)" =~ ^(webstorm|bash)$ ]]; then
+    echo "hugojosefson/webstorm"
   elif [[ "$(getDockerExecutable)" =~ ^heroku$ ]]; then
     echo "dickeyxxx/heroku-cli"
   elif [[ "$(getDockerExecutable)" =~ ^isolate-in-docker$ ]]; then
@@ -155,6 +157,8 @@ docker run \
   --volume "${DOCKER_WORKDIR}":"${DOCKER_WORKDIR}" \
   --volume "${CACHE_DIR}/home":"${HOME}" \
   --env HOME="${HOME}" \
+  --volume /tmp/.X11-unix:/tmp/.X11-unix \
+  --env DISPLAY="$DISPLAY" \
   ${PORT_ARGS} \
   ${DOCKER_EXTRA_ARGS} \
   ${DOCKER_IMAGE} \
