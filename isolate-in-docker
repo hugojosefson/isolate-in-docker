@@ -49,7 +49,9 @@ function getDockerWorkdir() {
 function safeName() {
   cat \
   | sed -r 's/\n//g' \
-  | sed -r 's/^[^a-zA-Z0-9]/_/' \
+  | sed -r 's/^\/$/root/' \
+  | sed -r 's/^\/-/root-/' \
+  | sed -r 's/^[^a-zA-Z0-9]+//' \
   | sed -r "s/[^a-zA-Z0-9_.-]/_/g"
 }
 
@@ -192,6 +194,12 @@ else
   PORT_ARGS=""
 fi
 
+if [[ "${DOCKER_WORKDIR}" == "/" ]]; then
+  DOCKER_WORKDIR_ARGS="--workdir /host-root --volume /:/host-root"
+else
+  DOCKER_WORKDIR_ARGS="--workdir ${DOCKER_WORKDIR} --volume ${DOCKER_WORKDIR}:${DOCKER_WORKDIR}"
+fi
+
 exec docker run \
   --rm \
   --interactive \
@@ -200,8 +208,7 @@ exec docker run \
   --name "${DOCKER_NAME}" \
   --hostname "${DOCKER_HOSTNAME}" \
   --user ${DOCKER_USER} \
-  --workdir "${DOCKER_WORKDIR}" \
-  --volume "${DOCKER_WORKDIR}":"${DOCKER_WORKDIR}" \
+  ${DOCKER_WORKDIR_ARGS} \
   --volume "${CACHE_DIR}/home":"${HOME}" \
   --env HOME="${HOME}" \
   --volume /tmp/.X11-unix:/tmp/.X11-unix \
