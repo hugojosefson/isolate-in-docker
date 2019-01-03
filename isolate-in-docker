@@ -33,8 +33,12 @@ function sourceConfigIfExists() {
   sourceFileIfExists "${1}/${2}.rc"
 }
 
-function getDockerExecutable() {
-  echo "${DOCKER_EXECUTABLE:-$(basename "${0}")}"
+function getLinkName() {
+  basename "${0}"
+}
+
+function getDockerCmd() {
+  echo "${DOCKER_CMD:-$(getLinkName)}"
 }
 
 function getDockerWorkdir() {
@@ -65,7 +69,7 @@ function readConfigFiles() {
   local configDir="${configDir:-$(getConfigBase)/$(getCacheIdentifier)}"
   mkdir -p "${configDir}"
   sourceConfigIfExists "${configDir}" "default"
-  sourceConfigIfExists "${configDir}" "$(basename $(getDockerExecutable))"
+  sourceConfigIfExists "${configDir}" "$(basename $(getDockerCmd))"
 }
 
 function getDockerUser() {
@@ -87,21 +91,31 @@ function withoutTag() {
 function getDockerImage() {
   if [[ ! -z "${DOCKER_IMAGE}" ]]; then
     echo "${DOCKER_IMAGE}"
-  elif [[ "$(getDockerExecutable)" =~ ^(node|npm|npx|yarn)$ ]]; then
+  elif [[ "$(getLinkName)" =~ ^(node|npm|npx|yarn)$ ]]; then
     echo "node:${NODE_VERSION:-lts}"
-  elif [[ "$(getDockerExecutable)" =~ ^(webstorm|bash)$ ]]; then
-    echo "hugojosefson/webstorm"
-  elif [[ "$(getDockerExecutable)" =~ ^heroku$ ]]; then
+  elif [[ "$(getLinkName)" =~ ^(webstorm)$ ]]; then
+    echo "\
+      --user root:root \
+      --env USER_ID=$(id -u) \
+      --env USER_NAME=$(id -un) \
+      --env GROUP_ID=$(id -g) \
+      --env GROUP_NAME=$(id -gn) \
+      hugojosefson/webstorm \
+    "
+  elif [[ "$(getLinkName)" =~ ^(heroku)$ ]]; then
     echo "dickeyxxx/heroku-cli"
-  elif [[ "$(getDockerExecutable)" =~ ^isolate-in-docker$ ]]; then
-    echo "This script is meant to be executed via a symlink. \
-Please see https://github.com/hugojosefson/isolate-in-docker#readme for installation instructions." >&2
-    exit 1
   else
-    echo "Unknown DOCKER_EXECUTABLE=$(getDockerExecutable)" >&2
+    echo "Unknown symlink name: \'$(getLinkName)\'" >&2
     exit 1
   fi
 }
+
+# Check how we were called
+if [[ "$(basename "${0}")" == "$(basename $(readlink -f ${0}))" ]]; then
+    echo "This script is meant to be executed via a symlink. \
+Please see https://github.com/hugojosefson/isolate-in-docker#readme for installation instructions." >&2
+    exit 1
+fi
 
 # Configurable env variables
 readConfigFiles
@@ -109,7 +123,7 @@ readConfigFiles
 DOCKER_IMAGE="$(getDockerImage)"
 DOCKER_USER=$(getDockerUser)
 DOCKER_WORKDIR="$(getDockerWorkdir)"
-DOCKER_EXECUTABLE="$(getDockerExecutable)"
+DOCKER_CMD="$(getDockerCmd)"
 DOCKER_EXTRA_ARGS="${DOCKER_EXTRA_ARGS:-}"
 DOCKER_NAME="${DOCKER_NAME:-$(echo $(basename ${DOCKER_WORKDIR}) | safeName)}"
 DOCKER_HOSTNAME="${DOCKER_HOSTNAME:-${DOCKER_NAME}}"
@@ -154,9 +168,10 @@ else
   PORT_ARGS=""
 fi
 
-docker run \
+exec docker run \
   --rm \
   --interactive \
+  -a stdin -a stdout -a stderr \
   ${TTY_ARG} \
   --name "$(basename ${DOCKER_WORKDIR})" \
   --hostname "$(basename ${DOCKER_WORKDIR})" \
@@ -171,4 +186,4 @@ docker run \
   ${PORT_ARGS} \
   ${DOCKER_EXTRA_ARGS} \
   ${DOCKER_IMAGE} \
-  ${DOCKER_EXECUTABLE} "$@"
+  ${DOCKER_CMD} "$@"
