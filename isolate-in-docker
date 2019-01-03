@@ -105,6 +105,8 @@ function getDockerImage() {
       --env GROUP_NAME=$(id -gn) \
       hugojosefson/webstorm \
     "
+  elif [[ "$(getLinkName)" =~ ^(aws)$ ]]; then
+    echo "mikesir87/aws-cli"
   elif [[ "$(getLinkName)" =~ ^(heroku)$ ]]; then
     echo "dickeyxxx/heroku-cli"
   else

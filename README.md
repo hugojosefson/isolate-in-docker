@@ -1,11 +1,10 @@
 # isolate-in-docker
 
-Wrapper script for running Node.js, Heroku CLI in isolation, where they
-only have access to current directory.
+Wrapper script for running Node.js, Heroku CLI, AWS CLI or WebStorm in
+isolation, where they only have access to current directory.
 
-Lets you keep Node.js and Heroku CLI uninstalled in your main
-environment, to limit your exposure to any malware that may be hosted
-on for example `npmjs.com`.
+Lets you keep those tools uninstalled in your main environment, to limit your
+exposure to any malware that may be hosted on for example `npmjs.com`.
 
 ## Install
 
@@ -20,6 +19,8 @@ which npm
 which npx
 which yarn
 which heroku
+which webstorm
+which aws
 ```
 
 If they find any executable(s), uninstall them and try again.
@@ -27,14 +28,18 @@ If they find any executable(s), uninstall them and try again.
 ### Actual installation
 
 ```bash
-curl https://raw.githubusercontent.com/hugojosefson/isolate-in-docker/master/nisolate-in-docker -o /usr/local/bin/isolate-in-docker
-chmod +x /usr/local/bin/isolate-in-docker
-ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/node
-ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/npm
-ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/npx
-ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/yarn
-ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/heroku
-ln -s /usr/local/bin/isolate-in-docker /usr/local/bin/webstorm
+( \
+   cd /usr/local/bin \
+&& curl https://raw.githubusercontent.com/hugojosefson/isolate-in-docker/master/nisolate-in-docker -o isolate-in-docker \
+&& chmod +x isolate-in-docker
+&& ln -s isolate-in-docker node \
+&& ln -s isolate-in-docker npm \
+&& ln -s isolate-in-docker npx \
+&& ln -s isolate-in-docker yarn \
+&& ln -s isolate-in-docker heroku \
+&& ln -s isolate-in-docker webstorm \
+&& ln -s isolate-in-docker aws \
+)
 ```
 
 ## Usage
@@ -51,6 +56,8 @@ npx cowsay It works!
 heroku --help
 
 webstorm .
+
+aws --version
 ```
 
 Note that only the current directory where you call the script from, is
