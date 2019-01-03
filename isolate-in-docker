@@ -139,6 +139,15 @@ function isTTY() {
   fi
 }
 
+# Are they running husky?
+function isHusky() {
+  if [[ "$@" =~ 'node_modules/husky/run.js' ]]; then
+    return ${true}
+  else
+    return ${false}
+  fi
+}
+
 # Write current git user config to ${CACHE_DIR}/home, so it is visible inside the Docker container.
 function writeGitUserToConfig() {
   local gitEmail="$(git config user.email)"
@@ -154,7 +163,7 @@ function writeGitUserToConfig() {
 }
 
 # Program starts here
-if isTTY; then
+if isTTY && ! isHusky "$@"; then
   TTY_ARG="--tty"
 else
   TTY_ARG=""
