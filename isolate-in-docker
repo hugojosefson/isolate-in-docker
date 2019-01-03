@@ -98,8 +98,9 @@ function getDockerImage() {
     echo "${DOCKER_IMAGE}"
   elif [[ "$(getLinkName)" =~ ^(node|npm|npx|yarn)$ ]]; then
     echo "node:${NODE_VERSION:-lts}"
-  elif [[ "$(getLinkName)" =~ ^(webstorm)$ ]]; then
+  elif [[ "$(getLinkName)" =~ ^(webstorm|jetbrains-toolbox)$ ]]; then
     echo "\
+      --device /dev/dri:/dev/dri \
       --user root:root \
       --env USER_ID=$(id -u) \
       --env USER_NAME=$(id -un) \
