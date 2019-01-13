@@ -112,6 +112,8 @@ function getDockerImage() {
     echo "mikesir87/aws-cli"
   elif [[ "$(getLinkName)" =~ ^(heroku)$ ]]; then
     echo "dickeyxxx/heroku-cli"
+  elif [[ "$(getLinkName)" =~ ^(mvn|jaotc|jar|jarsigner|java|javac|javadoc|javap|jcmd|jconsole|jdb|jdeprscan|jdeps|jhsdb|jimage|jinfo|jjs|jlink|jmap|jmod|jps|jrunscript|jshell|jstack|jstat|jstatd|keytool|pack200|rmic|rmid|rmiregistry|serialver|unpack200)$ ]]; then
+    echo "maven"
   else
     echo "Unknown symlink name: \'$(getLinkName)\'" >&2
     exit 1
