@@ -29,10 +29,6 @@ function sourceFileIfExists() {
   fi
 }
 
-function sourceConfigIfExists() {
-  sourceFileIfExists "${1}/${2}.rc"
-}
-
 function getLinkName() {
   basename "${0}"
 }
@@ -70,11 +66,37 @@ function getConfigBase() {
   echo "${CONFIG_BASE:-${HOME}/.config/isolate-in-docker/$(getDockerImage | withoutTag)}"
 }
 
+function getConfigDir() {
+  echo "$(getConfigBase)/$(getCacheIdentifier)"
+}
+
+function getConfigDirReadme() {
+  echo "-------------------------------------------------------------------------------
+Config dir for isolate-in-docker tools
+when in: $(pwd)
+-------------------------------------------------------------------------------
+
+NOTE! This config directory is specific for $(pwd)
+and used only when your current working directory is that directory!
+
+You may create a file here for each tool you use (named as the symlink, with the
+extension .rc, for example \"$(getLinkName).rc\"). If you do, it will be sourced
+before running that tool.
+
+You may declare environment variables in the configuration file. For details, see:
+https://github.com/hugojosefson/isolate-in-docker#configuration-options
+
+Additionaly, if you create a file named \"default.rc\", it will be sourced
+before all isolate-in-docker tools, before the specific tool's config file.
+"
+}
+
 function readConfigFiles() {
-  local configDir="${configDir:-$(getConfigBase)/$(getCacheIdentifier)}"
+  local configDir="$(getConfigDir)"
   mkdir -p "${configDir}"
-  sourceConfigIfExists "${configDir}" "default"
-  sourceConfigIfExists "${configDir}" "$(basename $(getDockerCmd))"
+  getConfigDirReadme > "${configDir}/README"
+  sourceFileIfExists "${configDir}/default.rc"
+  sourceFileIfExists "${configDir}/$(basename $(getDockerCmd)).rc"
 }
 
 function getDockerUser() {
@@ -197,6 +219,25 @@ function writeGitUserToConfig() {
   git config --file "${gitConfigFile}" --add user.name "${gitName}"
 }
 
+function ensureInFile() {
+  local file="${1}"
+  local line="${2}"
+  if ! grep -x "${line}" "${file}" >/dev/null; then
+    echo >> "${file}"
+    echo "${line}" >> "${file}"
+  fi
+}
+
+# Creates a directory .isolate-in-docker, with symlinks to config and home, for easy access by the user.
+function createSymlinks() {
+  isGitRepo && ensureInFile .git/info/exclude .isolate-in-docker/
+  mkdir -p .isolate-in-docker
+  rm .isolate-in-docker/config 2>/dev/null || true
+  rm .isolate-in-docker/home 2>/dev/null || true
+  ln -s "$(getConfigDir)" ".isolate-in-docker/config"
+  ln -s "${CACHE_DIR}/home" ".isolate-in-docker/home"
+}
+
 # Program starts here
 if isTTY && ! isHusky "$@"; then
   TTY_ARG="--tty"
@@ -205,6 +246,7 @@ else
 fi
 
 haveGit && isGitRepo && writeGitUserToConfig
+createSymlinks
 
 if [[ ! -z "${PORT}" ]]; then
   PORT_ARGS="--env PORT=${PORT} --publish ${PORT}:${PORT}"
