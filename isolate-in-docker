@@ -179,7 +179,7 @@ CACHE_DIR="$(getCacheDir)"
 
 # Are we in a TTY?
 function isTTY() {
-  if [[ -t 1 ]]; then
+  if [ -t 0 ]; then
     return ${true}
   else
     return ${false}
