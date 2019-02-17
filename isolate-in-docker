@@ -130,6 +130,16 @@ function getDockerImage() {
       --env GROUP_NAME=$(id -gn) \
       hugojosefson/webstorm \
     "
+  elif [[ "$(getLinkName)" =~ ^(goland|jetbrains-toolbox)$ ]]; then
+    echo "\
+      --device /dev/dri:/dev/dri \
+      --user root:root \
+      --env USER_ID=$(id -u) \
+      --env USER_NAME=$(id -un) \
+      --env GROUP_ID=$(id -g) \
+      --env GROUP_NAME=$(id -gn) \
+      hugojosefson/goland \
+    "
   elif [[ "$(getLinkName)" =~ ^(pulseUi)$ ]]; then
     echo "\
       --cap-add NET_ADMIN \

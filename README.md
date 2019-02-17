@@ -1,6 +1,6 @@
 # isolate-in-docker
 
-Wrapper script for running Node.js, Heroku CLI, AWS CLI or WebStorm in
+Wrapper script for running Node.js, Heroku CLI, AWS CLI, WebStorm or GoLand in
 isolation, where they only have access to current directory.
 
 Lets you keep those tools uninstalled in your main environment, to limit your
@@ -20,6 +20,7 @@ which npx
 which yarn
 which heroku
 which webstorm
+which goland
 which aws
 ```
 
@@ -38,6 +39,7 @@ If they find any executable(s), uninstall them and try again.
 && ln -s isolate-in-docker yarn \
 && ln -s isolate-in-docker heroku \
 && ln -s isolate-in-docker webstorm \
+&& ln -s isolate-in-docker goland \
 && ln -s isolate-in-docker jetbrains-toolbox \
 && ln -s isolate-in-docker aws \
 )
