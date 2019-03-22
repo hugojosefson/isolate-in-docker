@@ -42,6 +42,10 @@ function getDockerWorkdir() {
   echo "$(cd ${possiblyRelativeWorkdir} && pwd)"
 }
 
+function rand() {
+  cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w ${1:-32} | head -n 1
+}
+
 function safeName() {
   cat \
   | sed -r 's/\n//g' \
@@ -160,7 +164,10 @@ function getDockerImage() {
   elif [[ "$(getLinkName)" =~ ^(heroku)$ ]]; then
     echo "dickeyxxx/heroku-cli"
   elif [[ "$(getLinkName)" =~ ^(mvn|jaotc|jar|jarsigner|java|javac|javadoc|javap|jcmd|jconsole|jdb|jdeprscan|jdeps|jhsdb|jimage|jinfo|jjs|jlink|jmap|jmod|jps|jrunscript|jshell|jstack|jstat|jstatd|keytool|pack200|rmic|rmid|rmiregistry|serialver|unpack200)$ ]]; then
-    echo "maven"
+    echo "\
+      --device /dev/urandom:/dev/urandom \
+      maven \
+    "
   else
     echo "Unknown symlink name: \'$(getLinkName)\'" >&2
     exit 1
@@ -183,7 +190,7 @@ DOCKER_WORKDIR="$(getDockerWorkdir)"
 DOCKER_CMD="$(getDockerCmd)"
 DOCKER_EXTRA_ARGS="${DOCKER_EXTRA_ARGS:-}"
 DOCKER_HOSTNAME="${DOCKER_HOSTNAME:-${DOCKER_NAME:-$(basename "${DOCKER_WORKDIR}" | safeName)}}"
-DOCKER_NAME="${DOCKER_NAME:-$(echo $(basename "${DOCKER_WORKDIR}")-$(date --utc --iso-8601=seconds | sed -r 's/://g' | sed -r 's/\+0000/Z/g') | safeName)}"
+DOCKER_NAME="${DOCKER_NAME:-$(echo $(basename "${DOCKER_WORKDIR}")-$(date --utc --iso-8601=seconds | sed -r 's/://g' | sed -r 's/\+0000/Z/g')-$(rand 4) | safeName)}"
 
 CACHE_DIR="$(getCacheDir)"
 
