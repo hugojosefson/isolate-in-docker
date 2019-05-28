@@ -274,6 +274,7 @@ fi
 if [[ "${DOCKER_WORKDIR}" == "/" ]]; then
   DOCKER_WORKDIR_ARGS="--workdir /host-root --volume /:/host-root"
 else
+  mkdir -p "${CACHE_DIR}/home${DOCKER_WORKDIR#"$HOME"}"
   DOCKER_WORKDIR_ARGS="--workdir ${DOCKER_WORKDIR} --volume ${DOCKER_WORKDIR}:${DOCKER_WORKDIR}"
 fi
 
