@@ -119,11 +119,26 @@ function withoutTag() {
   echo "$1" | sed -r 's/:[^:]+$//g'
 }
 
+function getNodeVersion() {
+  if [[ -n "${NODE_VERSION}" ]]; then
+    echo "${NODE_VERSION}"
+    return
+  fi
+
+  local nvmrc_version="$(cat .nvmrc 2>/dev/null)"
+  if [[ -n "${nvmrc_version}" ]]; then
+    echo "${nvmrc_version}"
+    return
+  fi
+
+  echo "lts"
+}
+
 function getDockerImage() {
   if [[ ! -z "${DOCKER_IMAGE}" ]]; then
     echo "${DOCKER_IMAGE}"
   elif [[ "$(getLinkName)" =~ ^(node|npm|npx|yarn)$ ]]; then
-    echo "node:${NODE_VERSION:-lts}"
+    echo "node:$(getNodeVersion)"
   elif [[ "$(getLinkName)" =~ ^(webstorm|webstorm-install-rust|jetbrains-toolbox)$ ]]; then
     echo "\
       --device /dev/dri:/dev/dri \
