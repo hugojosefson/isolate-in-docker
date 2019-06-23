@@ -263,7 +263,7 @@ function ensureInFile() {
 # Creates a directory .isolate-in-docker, with symlinks to config and home, for easy access by the user.
 function createSymlinks() {
   isGitRepo && ensureInFile .git/info/exclude .isolate-in-docker/
-  mkdir -p .isolate-in-docker
+  mkdir -p .isolate-in-docker/empty
   rm .isolate-in-docker/config 2>/dev/null || true
   rm .isolate-in-docker/home 2>/dev/null || true
   ln -s "$(getConfigDir)" ".isolate-in-docker/config"
@@ -302,6 +302,7 @@ exec docker run \
   --hostname "${DOCKER_HOSTNAME}" \
   --user ${DOCKER_USER} \
   ${DOCKER_WORKDIR_ARGS} \
+  --volume "$(pwd)/.isolate-in-docker/empty":"$(pwd)/.isolate-in-docker":ro \
   --volume "${CACHE_DIR}/home":"${HOME}" \
   --env HOME="${HOME}" \
   --volume /tmp/.X11-unix:/tmp/.X11-unix \
