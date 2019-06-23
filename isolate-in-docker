@@ -131,7 +131,7 @@ function getNodeVersion() {
     return
   fi
 
-  echo "lts"
+  echo "12"
 }
 
 function getDockerImage() {
