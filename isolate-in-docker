@@ -296,6 +296,7 @@ fi
 exec docker run \
   --rm \
   --interactive \
+  --init \
   -a stdin -a stdout -a stderr \
   ${TTY_ARG} \
   --name "${DOCKER_NAME}" \
