@@ -90,7 +90,7 @@ before running that tool.
 You may declare environment variables in the configuration file. For details, see:
 https://github.com/hugojosefson/isolate-in-docker#configuration-options
 
-Additionaly, if you create a file named \"default.rc\", it will be sourced
+Additionally, if you create a file named \"default.rc\", it will be sourced
 before all isolate-in-docker tools, before the specific tool's config file.
 "
 }
