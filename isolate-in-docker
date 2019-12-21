@@ -11,6 +11,20 @@ set -e
 true=0
 false=1
 
+# Print docker arguments for allowing the container to access the host's docker engine, in case $DOCKERCEPTION is set.
+function maybeDockerception() {
+  [[ -z "${DOCKERCEPTION}" ]] && return
+
+  local docker_sock="$(docker context inspect -f '{{.Endpoints.docker.Host}}' | sed -E 's/^unix:\/\///')"
+  local docker_sock_gid="$(stat -c '%g' "${docker_sock}")"
+  local docker_bin="$(command -v docker)"
+
+  echo "--group-add "${docker_sock_gid}" \
+    -v "${docker_sock}":"${docker_sock}" \
+    -v "${docker_bin}":"${docker_bin}":ro \
+  "
+}
+
 # Does the file exist and is readable to us, or is a symlink to such a file?
 function fileExists() {
   local target="${1}"
@@ -165,7 +179,6 @@ function getDockerImage() {
       --cap-add SYS_ADMIN \
       --cap-add MKNOD \
       --device /dev/net/tun:/dev/net/tun \
-      --net=host \
       --device /dev/dri:/dev/dri \
       --user root:root \
       --env USER_ID=$(id -u) \
@@ -208,6 +221,7 @@ DOCKER_CMD="$(getDockerCmd)"
 DOCKER_EXTRA_ARGS="${DOCKER_EXTRA_ARGS:-}"
 DOCKER_HOSTNAME="${DOCKER_HOSTNAME:-${DOCKER_NAME:-$(basename "${DOCKER_WORKDIR}" | safeName)}}"
 DOCKER_NAME="${DOCKER_NAME:-$(echo $(basename "${DOCKER_WORKDIR}")-$(date --utc --iso-8601=seconds | sed -r 's/://g' | sed -r 's/\+0000/Z/g')-$(rand 4) | safeName)}"
+DOCKER_NET="${DOCKER_NET:-host}"
 
 CACHE_DIR="$(getCacheDir)"
 
@@ -309,8 +323,10 @@ exec docker run \
   --volume "${CACHE_DIR}/home":"${HOME}" \
   --env HOME="${HOME}" \
   --volume /tmp/.X11-unix:/tmp/.X11-unix \
-  --env DISPLAY="$DISPLAY" \
+  --env DISPLAY="${DISPLAY}" \
   ${PORT_ARGS} \
+  $(maybeDockerception) \
+  --net="${DOCKER_NET}" \
   ${DOCKER_EXTRA_ARGS} \
   ${DOCKER_IMAGE} \
   ${DOCKER_CMD} "$@"
