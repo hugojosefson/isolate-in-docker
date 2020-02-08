@@ -11,6 +11,9 @@ set -e
 true=0
 false=1
 
+# Default, if none specified in ./.nvmrc nor in $NODE_VERSION
+DEFAULT_NODE_VERSION=12
+
 # Print docker arguments for allowing the container to access the host's docker engine, in case $DOCKERCEPTION is set.
 function maybeDockerception() {
   [[ -z "${DOCKERCEPTION}" ]] && return
@@ -62,30 +65,11 @@ function rand() {
 
 function safeName() {
   cat \
-  | sed -r 's/\n//g' \
-  | sed -r 's/^\/$/root/' \
-  | sed -r 's/^\/-/root-/' \
-  | sed -r 's/^[^a-zA-Z0-9]+//' \
-  | sed -r "s/[^a-zA-Z0-9_.-]/_/g"
-}
-
-function getCacheIdentifier() {
-  if [[ ! -z "${CACHE_IDENTIFIER}" ]]; then
-    echo "${CACHE_IDENTIFIER}"
-  else
-    local workdir="$(getDockerWorkdir)"
-    local cleanedUp="$(echo "${workdir}" | safeName)"
-    local hash="$(echo ${workdir} | md5sum | cut -d ' ' -f 1)"
-    echo ${cleanedUp}_${hash}
-  fi
-}
-
-function getConfigBase() {
-  echo "${CONFIG_BASE:-${HOME}/.config/isolate-in-docker/$(getDockerImage | withoutTag)}"
-}
-
-function getConfigDir() {
-  echo "$(getConfigBase)/$(getCacheIdentifier)"
+  | sed -E 's/\n//g' \
+  | sed -E 's/^\/$/root/' \
+  | sed -E 's/^\/-/root-/' \
+  | sed -E 's/^[^a-zA-Z0-9]+//' \
+  | sed -E "s/[^a-zA-Z0-9_.-]/_/g"
 }
 
 function getConfigDirReadme() {
@@ -110,7 +94,7 @@ before all isolate-in-docker tools, before the specific tool's config file.
 }
 
 function readConfigFiles() {
-  local configDir="$(getConfigDir)"
+  local configDir=".isolate-in-docker/config"
   mkdir -p "${configDir}"
   getConfigDirReadme > "${configDir}/README"
   sourceFileIfExists "${configDir}/default.rc"
@@ -119,18 +103,6 @@ function readConfigFiles() {
 
 function getDockerUser() {
   echo ${DOCKER_USER:-"$(id -u)":"$(id -g)"}
-}
-
-function getCacheBase() {
-  echo "${CACHE_BASE:-${HOME}/.cache/isolate-in-docker/$(getDockerImage | withoutTag)}"
-}
-
-function getCacheDir() {
-  echo "${CACHE_DIR:-$(getCacheBase)/$(getCacheIdentifier)}"
-}
-
-function withoutTag() {
-  echo "$1" | sed -r 's/:[^:]+$//g'
 }
 
 function getNodeVersion() {
@@ -145,7 +117,7 @@ function getNodeVersion() {
     return
   fi
 
-  echo "12"
+  echo "${DEFAULT_NODE_VERSION}"
 }
 
 function getDockerImage() {
@@ -204,27 +176,6 @@ function getDockerImage() {
   fi
 }
 
-# Check how we were called
-if [[ "$(basename "${0}")" == "$(basename $(readlink -f ${0}))" ]]; then
-    echo "This script is meant to be executed via a symlink. \
-Please see https://github.com/hugojosefson/isolate-in-docker#readme for installation instructions." >&2
-    exit 1
-fi
-
-# Configurable env variables
-readConfigFiles
-
-DOCKER_IMAGE="$(getDockerImage)"
-DOCKER_USER=$(getDockerUser)
-DOCKER_WORKDIR="$(getDockerWorkdir)"
-DOCKER_CMD="$(getDockerCmd)"
-DOCKER_EXTRA_ARGS="${DOCKER_EXTRA_ARGS:-}"
-DOCKER_HOSTNAME="${DOCKER_HOSTNAME:-${DOCKER_NAME:-$(basename "${DOCKER_WORKDIR}" | safeName)}}"
-DOCKER_NAME="${DOCKER_NAME:-$(echo $(basename "${DOCKER_WORKDIR}")-$(date --utc --iso-8601=seconds | sed -r 's/://g' | sed -r 's/\+0000/Z/g')-$(rand 4) | safeName)}"
-DOCKER_NET="${DOCKER_NET:-host}"
-
-CACHE_DIR="$(getCacheDir)"
-
 # Are we in a TTY?
 function isTTY() {
   if [ -t 0 ]; then
@@ -248,17 +199,17 @@ function haveGit() {
   command -v git >/dev/null
 }
 
-# Is current directory a git repo?
+# Is the current directory a git repo?
 function isGitRepo() {
   [[ -d ".git" ]]
 }
 
-# Write current git user config to ${CACHE_DIR}/home, so it is visible inside the Docker container.
+# Write current git user config to .isolate-in-docker/home/.gitconfig, so it is visible inside the Docker container.
 function writeGitUserToConfig() {
   local gitEmail="$(git config user.email)"
   local gitName="$(git config user.name)"
 
-  gitConfigFile="$(getCacheDir)/home/.gitconfig"
+  gitConfigFile=".isolate-in-docker/home/.gitconfig"
   mkdir -p "$(dirname ${gitConfigFile})"
   touch "${gitConfigFile}"
   git config --file "${gitConfigFile}" --unset-all user.email || true
@@ -276,25 +227,72 @@ function ensureInFile() {
   fi
 }
 
-# Creates a directory .isolate-in-docker, with symlinks to config and home, for easy access by the user.
-function createSymlinks() {
-  isGitRepo && ensureInFile .git/info/exclude .isolate-in-docker/
-  mkdir -p .isolate-in-docker/empty
-  rm .isolate-in-docker/config 2>/dev/null || true
-  rm .isolate-in-docker/home 2>/dev/null || true
-  ln -s "$(getConfigDir)" ".isolate-in-docker/config"
-  ln -s "${CACHE_DIR}/home" ".isolate-in-docker/home"
+function exists() {
+  local target="${1}"
+  ls -d "${target}" >/dev/null 2>&1
 }
 
+# Migrates any symlinked directories from previous versions of isolate-in-docker
+function migrateIfSymlink() {
+  local name="${1}"
+  if [[ -L "${name}" ]]; then
+    local targetDir="$(readlink -f "${name}")"
+    if [[ -d "${targetDir}" ]]; then
+      rm -f "${name}"
+      mv "${targetDir}" "${name}"
+    else
+      mv "${name}" "${name}.old"
+    fi
+  elif exists "${name}" && [[ ! -d "${name}" ]]; then
+      mv "${name}" "${name}.old"
+  fi
+}
+
+# Creates a directory .isolate-in-docker, with home and config.
+function createIsolation() {
+  if isGitRepo; then
+    ensureInFile .git/info/exclude .isolate-in-docker/
+  fi
+
+  migrateIfSymlink .isolate-in-docker/home
+  migrateIfSymlink .isolate-in-docker/config
+
+  mkdir -p .isolate-in-docker/empty
+  mkdir -p .isolate-in-docker/home
+  mkdir -p .isolate-in-docker/config
+
+  if isGitRepo && haveGit; then
+    writeGitUserToConfig
+  fi
+}
+
+# Check how we were called
+if [[ "$(basename "${0}")" == "$(basename $(readlink -f ${0}))" ]]; then
+    echo "This script is meant to be executed via a symlink. \
+Please see https://github.com/hugojosefson/isolate-in-docker#readme for installation instructions." >&2
+    exit 1
+fi
+
 # Program starts here
+createIsolation
+
+# Configurable env variables
+readConfigFiles
+
+DOCKER_IMAGE="$(getDockerImage)"
+DOCKER_USER=$(getDockerUser)
+DOCKER_WORKDIR="$(getDockerWorkdir)"
+DOCKER_CMD="$(getDockerCmd)"
+DOCKER_EXTRA_ARGS="${DOCKER_EXTRA_ARGS:-}"
+DOCKER_HOSTNAME="${DOCKER_HOSTNAME:-${DOCKER_NAME:-$(basename "${DOCKER_WORKDIR}" | safeName)}}"
+DOCKER_NAME="${DOCKER_NAME:-$(echo $(basename "${DOCKER_WORKDIR}")-$(date --utc --iso-8601=seconds | sed -E 's/://g' | sed -E 's/\+0000/Z/g')-$(rand 4) | safeName)}"
+DOCKER_NET="${DOCKER_NET:-host}"
+
 if isTTY && ! isHusky "$@"; then
   TTY_ARG="--tty"
 else
   TTY_ARG=""
 fi
-
-haveGit && isGitRepo && writeGitUserToConfig
-createSymlinks
 
 if [[ ! -z "${PORT}" ]]; then
   PORT_ARGS="--env PORT=${PORT} --publish ${PORT}:${PORT}"
@@ -305,7 +303,7 @@ fi
 if [[ "${DOCKER_WORKDIR}" == "/" ]]; then
   DOCKER_WORKDIR_ARGS="--workdir /host-root --volume /:/host-root"
 else
-  mkdir -p "${CACHE_DIR}/home${DOCKER_WORKDIR#"$HOME"}"
+  mkdir -p ".isolate-in-docker/home${DOCKER_WORKDIR#"$HOME"}"
   DOCKER_WORKDIR_ARGS="--workdir ${DOCKER_WORKDIR} --volume ${DOCKER_WORKDIR}:${DOCKER_WORKDIR}"
 fi
 
@@ -320,7 +318,7 @@ exec docker run \
   --user ${DOCKER_USER} \
   ${DOCKER_WORKDIR_ARGS} \
   --volume "$(pwd)/.isolate-in-docker/empty":"$(pwd)/.isolate-in-docker":ro \
-  --volume "${CACHE_DIR}/home":"${HOME}" \
+  --volume "$(pwd)/.isolate-in-docker/home":"${HOME}" \
   --env HOME="${HOME}" \
   --volume /tmp/.X11-unix:/tmp/.X11-unix \
   --env DISPLAY="${DISPLAY}" \
