@@ -295,7 +295,7 @@ else
 fi
 
 if [[ ! -z "${PORT}" ]]; then
-  PORT_ARGS="--env PORT=${PORT} --publish ${PORT}:${PORT}"
+  PORT_ARGS="--env PORT=${PORT}"
 else
   PORT_ARGS=""
 fi
