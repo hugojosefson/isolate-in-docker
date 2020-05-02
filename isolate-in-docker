@@ -12,7 +12,7 @@ true=0
 false=1
 
 # Default, if none specified in ./.nvmrc nor in $NODE_VERSION
-DEFAULT_NODE_VERSION=12
+DEFAULT_NODE_VERSION=latest
 
 # Print docker arguments for allowing the container to access the host's docker engine, in case $DOCKERCEPTION is set.
 function maybeDockerception() {
