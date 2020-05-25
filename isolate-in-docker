@@ -125,7 +125,7 @@ function getDockerImage() {
     echo "${DOCKER_IMAGE}"
   elif [[ "$(getLinkName)" =~ ^(node|npm|npx|yarn)$ ]]; then
     echo "node:$(getNodeVersion)"
-  elif [[ "$(getLinkName)" =~ ^(webstorm|webstorm-install-rust|jetbrains-toolbox)$ ]]; then
+  elif [[ "$(getLinkName)" =~ ^(webstorm|webstorm-install-rust|clion)$ ]]; then
     echo "\
       --device /dev/dri:/dev/dri \
       --user root:root \

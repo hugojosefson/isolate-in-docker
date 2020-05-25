@@ -21,6 +21,7 @@ which yarn
 which heroku
 which webstorm
 which goland
+which clion
 which aws
 ```
 
@@ -41,7 +42,7 @@ If they find any executable(s), uninstall them and try again.
 && ln -s isolate-in-docker webstorm \
 && ln -s isolate-in-docker webstorm-install-rust \
 && ln -s isolate-in-docker goland \
-&& ln -s isolate-in-docker jetbrains-toolbox \
+&& ln -s isolate-in-docker cion \
 && ln -s isolate-in-docker aws \
 )
 ```
