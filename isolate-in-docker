@@ -50,10 +50,6 @@ function getLinkName() {
   basename "${0}"
 }
 
-function getDockerCmd() {
-  echo "${DOCKER_CMD:-$(getLinkName)}"
-}
-
 function getDockerWorkdir() {
   local possiblyRelativeWorkdir="${DOCKER_WORKDIR:-$(pwd)}"
   echo "$(cd ${possiblyRelativeWorkdir} && pwd)"
@@ -98,7 +94,7 @@ function readConfigFiles() {
   mkdir -p "${configDir}"
   getConfigDirReadme > "${configDir}/README"
   sourceFileIfExists "${configDir}/default.rc"
-  sourceFileIfExists "${configDir}/$(basename $(getDockerCmd)).rc"
+  sourceFileIfExists "${configDir}/$(getLinkName).rc"
 }
 
 function getDockerUser() {
@@ -118,6 +114,16 @@ function getNodeVersion() {
   fi
 
   echo "${DEFAULT_NODE_VERSION}"
+}
+
+function getDockerCmd() {
+  if [[ ! -z "${DOCKER_CMD}" ]]; then
+    echo "${DOCKER_CMD}"
+  elif [[ "$(getLinkName)" =~ ^(firefox40)$ ]]; then
+    echo "/opt/firefox/firefox-bin --new-instance"
+  else
+    getLinkName
+  fi
 }
 
 function getDockerImage() {
