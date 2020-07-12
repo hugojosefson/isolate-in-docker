@@ -124,7 +124,12 @@ function getDockerImage() {
   if [[ ! -z "${DOCKER_IMAGE}" ]]; then
     echo "${DOCKER_IMAGE}"
   elif [[ "$(getLinkName)" =~ ^(node|npm|npx|yarn)$ ]]; then
-    echo "node:$(getNodeVersion)"
+    echo "--env NODE_ENV=${NODE_ENV} node:$(getNodeVersion)"
+  elif [[ "$(getLinkName)" =~ ^(firefox40)$ ]]; then
+    echo "\
+      --device /dev/dri:/dev/dri \
+      netcapsule/firefox \
+    "
   elif [[ "$(getLinkName)" =~ ^(webstorm|webstorm-install-rust|clion)$ ]]; then
     echo "\
       --device /dev/dri:/dev/dri \
