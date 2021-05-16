@@ -181,6 +181,8 @@ function getDockerImage() {
       --device /dev/urandom:/dev/urandom \
       maven \
     "
+  elif [[ "$(getLinkName)" =~ ^(cargo|cargo-clippy|cargo-fmt|cargo-miri|clippy-driver|rls|rust-gdb|rust-lldb|rustc|rustdoc|rustfmt|rustup)$ ]]; then
+    echo "rust"
   else
     echo "Unknown symlink name: \'$(getLinkName)\'" >&2
     exit 1
