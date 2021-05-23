@@ -121,6 +121,8 @@ function getDockerCmd() {
     echo "${DOCKER_CMD}"
   elif [[ "$(getLinkName)" =~ ^(firefox40)$ ]]; then
     echo "/opt/firefox/firefox-bin --new-instance"
+  elif [[ "$(getLinkName)" =~ ^(signal-desktop)$ ]]; then
+    echo "signal-desktop --no-sandbox"
   else
     getLinkName
   fi
@@ -172,6 +174,16 @@ function getDockerImage() {
     "
   elif [[ "$(getLinkName)" =~ ^(git-revise)$ ]]; then
     echo "-v "${HOME}/.gitconfig":"${HOME}/.gitconfig":ro hugojosefson/git-revise"
+  elif [[ "$(getLinkName)" =~ ^(signal-desktop)$ ]]; then
+    echo "\
+      --device /dev/dri:/dev/dri \
+      --user root:root \
+      --env USER_ID=$(id -u) \
+      --env USER_NAME=$(id -un) \
+      --env GROUP_ID=$(id -g) \
+      --env GROUP_NAME=$(id -gn) \
+      hugojosefson/signal-desktop \
+    "
   elif [[ "$(getLinkName)" =~ ^(aws)$ ]]; then
     echo "mikesir87/aws-cli"
   elif [[ "$(getLinkName)" =~ ^(heroku)$ ]]; then
