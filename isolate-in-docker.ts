@@ -603,6 +603,7 @@ Please see https://github.com/hugojosefson/isolate-in-docker#readme for installa
     ...["--net", getDockerNet()],
     ...["--user", await getDockerUser()],
     ...await getDockerWorkdirArgs(isolationPath),
+    ...["--volume", [getDockerWorkdir(), getDockerWorkdir()].join(":")],
     ...["--volume", [emptyDir, emptyDir, "ro"].join(":")],
     ...["--volume", [homeDir, actualHome].join(":")],
     ...["--volume", [actualX11, actualX11].join(":")],
