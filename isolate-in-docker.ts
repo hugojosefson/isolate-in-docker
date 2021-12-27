@@ -1,5 +1,5 @@
 #!/bin/sh
-// 2>/dev/null;DENO_VERSION_RANGE="^1.17.1";DENO_RUN_ARGS="--unstable --allow-run --allow-env --allow-read --allow-write";: "Via https://github.com/hugojosefson/deno-shebang CC BY 4.0";set -e;V="$DENO_VERSION_RANGE";A="$DENO_RUN_ARGS";U="$(expr "$(echo "$V"|curl -Gso/dev/null -w%{url_effective} --data-urlencode @- "")" : '..\(.*\)...')";D="$(command -v deno||true)";t(){ d="$(mktemp)";rm "${d}";dirname "${d}";};f(){ m="$(command -v "$0"||true)";l="/* 2>/dev/null";! [ -z $m ]&&[ -r $m ]&&[ "$(head -c3 "$m")" = '#!/' ]&&(read x && read y &&[ "$x" = "#!/bin/sh" ]&&[ "$l" != "${y%"$l"*}" ])<"$m";};a(){ [ -n $D ];};s(){ a&&[ -x "$R/deno" ]&&[ "$R/deno" = "$D" ]&&return;deno eval "import{satisfies as e}from'https://deno.land/x/semver@v1.3.0/mod.ts';Deno.exit(e(Deno.version.deno,'$V')?0:1);">/dev/null 2>&1;};g(){ curl -sSfL "https://api.mattandre.ws/semver/github/denoland/deno/$U";};e(){ R="$(t)/deno-range-$V/bin";mkdir -p "$R";export PATH="$R:$PATH";[ -x "$R/deno" ]&&return;a&&s&&([ -L "$R/deno" ]||ln -s "$D" "$R/deno")&&return;v="$(g)";i="$(t)/deno-$v";[ -L "$R/deno" ]||ln -s "$i/bin/deno" "$R/deno";s && return;curl -fsSL https://deno.land/x/install/install.sh|DENO_INSTALL="$i" sh -s "$v">&2;};echo exec env ISOLATE_IN_DOCKER_EXEC_PATH="$0" deno run $A "$(readlink -fn "$0")" "$@"<<'//🔚'
+// 2>/dev/null;DENO_VERSION_RANGE="^1.17.1";DENO_RUN_ARGS="--unstable --allow-run --allow-env --allow-read --allow-write";: "Via https://github.com/hugojosefson/deno-shebang CC BY 4.0";set -e;V="$DENO_VERSION_RANGE";A="$DENO_RUN_ARGS";U="$(expr "$(echo "$V"|curl -Gso/dev/null -w%{url_effective} --data-urlencode @- "")" : '..\(.*\)...')";D="$(command -v deno||true)";t(){ d="$(mktemp)";rm "${d}";dirname "${d}";};f(){ m="$(command -v "$0"||true)";l="/* 2>/dev/null";! [ -z $m ]&&[ -r $m ]&&[ "$(head -c3 "$m")" = '#!/' ]&&(read x && read y &&[ "$x" = "#!/bin/sh" ]&&[ "$l" != "${y%"$l"*}" ])<"$m";};a(){ [ -n $D ];};s(){ a&&[ -x "$R/deno" ]&&[ "$R/deno" = "$D" ]&&return;deno eval "import{satisfies as e}from'https://deno.land/x/semver@v1.3.0/mod.ts';Deno.exit(e(Deno.version.deno,'$V')?0:1);">/dev/null 2>&1;};g(){ curl -sSfL "https://api.mattandre.ws/semver/github/denoland/deno/$U";};e(){ R="$(t)/deno-range-$V/bin";mkdir -p "$R";export PATH="$R:$PATH";[ -x "$R/deno" ]&&return;a&&s&&([ -L "$R/deno" ]||ln -s "$D" "$R/deno")&&return;v="$(g)";i="$(t)/deno-$v";[ -L "$R/deno" ]||ln -s "$i/bin/deno" "$R/deno";s && return;curl -fsSL https://deno.land/x/install/install.sh|DENO_INSTALL="$i" sh -s "$v">&2;};exec env ISOLATE_IN_DOCKER_EXEC_PATH="$0" deno run $A "$(readlink -fn "$0")" "$@"
 
 // This file is not meant to be executed directly.
 // It should be executed via a symlink, named the same as the executable you wish to execute inside the Docker image.
@@ -207,7 +207,9 @@ async function getDockerImage(): Promise<string[]> {
     case "npx":
     case "yarn":
       return [
-        ...(Deno.env.get("NODE_ENV") ? ["--env", `NODE_ENV=${Deno.env.get("NODE_ENV")}`]:[]),
+        ...(Deno.env.get("NODE_ENV")
+          ? ["--env", `NODE_ENV=${Deno.env.get("NODE_ENV")}`]
+          : []),
         `node:${await getNodeVersion()}`,
       ];
     case "firefox40":
@@ -559,10 +561,10 @@ async function readConfigFileIntoEnvIfExists(path: string): Promise<void> {
       .filter((line: string) => line.includes("="))
       .map((line: string) => line.match(/^([^=]+)=(.*)/))
       .filter((nullOrArray: null | RegExpMatchArray) => !!nullOrArray)
-      .map(a => a as string[])
+      .map((a) => a as string[])
       .map(([_line, ...matches]: string[]) => matches)
       .filter((matches) => matches.length === 2)
-      .map(a => a as [string, string])
+      .map((a) => a as [string, string])
       .forEach(([key, value]) => Deno.env.set(key, value));
   } catch (err) {
     if (err instanceof Deno.errors.NotFound) {
@@ -614,7 +616,7 @@ Please see https://github.com/hugojosefson/isolate-in-docker#readme for installa
     ...Deno.args,
   ];
 
-  console.error(s({cmd}, 2))
+  console.error(s({ cmd }, 2));
 
   const process: Deno.Process = Deno.run({
     cmd,
@@ -627,5 +629,3 @@ Please see https://github.com/hugojosefson/isolate-in-docker#readme for installa
 }
 
 await main();
-
-//🔚
