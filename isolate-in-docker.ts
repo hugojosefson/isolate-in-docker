@@ -371,12 +371,6 @@ async function readlinkF(
   ]);
 }
 
-async function isCalledDirectly(): Promise<boolean> {
-  const linkName: string = getLinkName();
-  const linkTarget: string = await readlinkF(linkName);
-  return linkName === linkTarget;
-}
-
 async function moveIfExists(oldPath: string, newPath: string): Promise<void> {
   try {
     await ensureDir(resolve(newPath, ".."));
@@ -578,12 +572,6 @@ async function readConfigFileIntoEnvIfExists(path: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  if (await isCalledDirectly()) {
-    console.error(`This script is meant to be executed via a symlink.
-Please see https://github.com/hugojosefson/isolate-in-docker#readme for installation instructions.`);
-    Deno.exit(1);
-  }
-
   const isolationPath: string = await createIsolation();
   await createConfigReadme(isolationPath);
   await readConfigFilesIntoEnv(isolationPath);
