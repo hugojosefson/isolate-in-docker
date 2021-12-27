@@ -8,7 +8,7 @@
 
 import { readAll } from "https://deno.land/std@0.119.0/streams/conversion.ts";
 import cstring from "https://deno.land/x/cstring@v1.0/mod.js";
-import { resolve } from "https://deno.land/std@0.119.0/path/mod.ts";
+import { basename, resolve } from "https://deno.land/std@0.119.0/path/mod.ts";
 import {
   ensureDir,
   ensureFile,
@@ -68,11 +68,8 @@ async function getDockerceptionArgs(): Promise<string[]> {
   if (!Deno.env.get("DOCKERCEPTION")) return [];
 
   const dockerSock = (await run([
-    "docker",
-    "context",
-    "inspect",
-    "-f",
-    "{{.Endpoints.docker.Host}}",
+    ...["docker", "context", "inspect"],
+    ...["-f", "{{.Endpoints.docker.Host}}"],
   ])).replaceAll(/^unix:\/\//, "");
   const dockerSockGid = (await Deno.stat(dockerSock)).gid;
   const dockerBin = await run(["command", "-v", "docker"]);
@@ -80,12 +77,9 @@ async function getDockerceptionArgs(): Promise<string[]> {
   assertNumber(dockerSockGid);
 
   return [
-    "--group-add",
-    `${dockerSockGid as number}`,
-    "-v",
-    dockerSock + ":" + dockerSock,
-    "-v",
-    dockerBin + ":" + dockerBin + ":ro",
+    ...["--group-add", `${dockerSockGid as number}`],
+    ...["--volume", [dockerSock, dockerSock].join(":")],
+    ...["--volume", [dockerBin, dockerBin, "ro"].join(":")],
   ];
 }
 
@@ -97,8 +91,8 @@ function getDockerWorkdir(): string {
   return Deno.env.get("DOCKER_WORKDIR") ?? Deno.cwd();
 }
 
-function rand(): string {
-  return cstring(32);
+function rand(length = 32): string {
+  return cstring(length);
 }
 
 function safeName(unsafeName: string): string {
@@ -165,7 +159,7 @@ async function getNodeVersion(): Promise<string> {
 function getDockerCmd(): string[] {
   const fromEnv = Deno.env.get("DOCKER_CMD");
   if (isStringNotEmpty(fromEnv)) {
-    return [fromEnv];
+    return fromEnv.split(" ");
   }
 
   const linkName: string = getLinkName();
@@ -176,6 +170,14 @@ function getDockerCmd(): string[] {
     return ["signal-desktop", "--no-sandbox"];
   }
   return [linkName];
+}
+
+function getDockerExtraArgs(): string[] {
+  const fromEnv = Deno.env.get("DOCKER_EXTRA_ARGS");
+  if (isStringNotEmpty(fromEnv)) {
+    return fromEnv.split(" ");
+  }
+  return [];
 }
 
 async function getWebstormDockerImageDockerArgs(): Promise<string[]> {
@@ -397,9 +399,11 @@ async function createIsolation(): Promise<string> {
   await migrateIfSymlink(resolve(oldIsolationPath, "home"));
   await migrateIfSymlink(resolve(oldIsolationPath, "config"));
   await moveIfExists(oldIsolationPath, isolationPath);
-  await Promise.all(["empty", "home", "config"]
-    .map(dir => resolve(isolationPath, dir))
-    .map(ensureDir));
+  await Promise.all(
+    ["empty", "home", "config"]
+      .map((dir) => resolve(isolationPath, dir))
+      .map(ensureDir),
+  );
   if (await haveGit()) {
     await writeGitUserToConfig(isolationPath);
   }
@@ -438,12 +442,11 @@ async function writeGitUserToConfig(isolationPath: string): Promise<void> {
 async function isSymlink(path: string): Promise<boolean> {
   try {
     return (await Deno.lstat(path)).isSymlink;
-  }catch(err){
+  } catch (err) {
     if (err instanceof Deno.errors.NotFound) {
       return false;
     }
     throw err;
-
   }
 }
 
@@ -478,6 +481,93 @@ async function migrateIfSymlink(correctPath: string): Promise<void> {
   }
 }
 
+async function getDockerWorkdirArgs(isolationPath: string): Promise<string[]> {
+  const dockerWorkdir = getDockerWorkdir();
+  if (dockerWorkdir === "/") {
+    return ["--workdir", "/host-root", "--volume", "/:/host-root"];
+  } else {
+    await ensureDir(resolve(isolationPath, "home"));
+    return [];
+  }
+}
+
+function getDockerName(): string {
+  const fromEnv = Deno.env.get("DOCKER_NAME");
+  if (isStringNotEmpty(fromEnv)) {
+    return fromEnv;
+  }
+
+  const dockerWorkdir = getDockerWorkdir();
+  const dirName = basename(dockerWorkdir);
+  const date = new Date().toISOString()
+    .replaceAll(/:/g, "")
+    .replace(/\.\d+/, "");
+  const random = rand(4);
+  return safeName([dirName, date, random].join("-"));
+}
+function getDockerHostname(): string {
+  const fromEnv1 = Deno.env.get("DOCKER_HOSTNAME");
+  if (isStringNotEmpty(fromEnv1)) {
+    return fromEnv1;
+  }
+
+  const fromEnv2 = Deno.env.get("DOCKER_NAME");
+  if (isStringNotEmpty(fromEnv2)) {
+    return fromEnv2;
+  }
+
+  const dockerWorkdir = getDockerWorkdir();
+  const dirName = basename(dockerWorkdir);
+  return safeName(dirName);
+}
+
+function getDockerNet(): string {
+  const fromEnv = Deno.env.get("DOCKER_NET");
+  if (isStringNotEmpty(fromEnv)) {
+    return fromEnv;
+  }
+
+  return "host";
+}
+
+async function createConfigReadme(isolationPath: string): Promise<void> {
+  const configDir = resolve(isolationPath, "config");
+  await ensureDir(configDir);
+  await Deno.writeTextFile(resolve(configDir, "README"), getConfigDirReadme());
+}
+
+/**
+ * Configurable env variables
+ */
+async function readConfigFilesIntoEnv(isolationPath: string): Promise<void> {
+  const configDir = resolve(isolationPath, "config");
+  await readConfigFileIntoEnvIfExists(resolve(configDir, "default.rc"));
+  await readConfigFileIntoEnvIfExists(
+    resolve(configDir, `${getLinkName()}.rc`),
+  );
+}
+
+async function readConfigFileIntoEnvIfExists(path: string): Promise<void> {
+  try {
+    const contents: string = await Deno.readTextFile(path);
+    const lines: string[] = contents.split("\n");
+    lines
+      .map(String.prototype.trim)
+      .filter((line: string) => !line.startsWith("#"))
+      .filter((line: string) => line.includes("="))
+      .map((line: string) => line.match(/^([^=]+)=(.*)/))
+      .filter((nullOrArray: null | RegExpMatchArray) => !!nullOrArray)
+      .map(([_line, ...matches]: string[]) => matches)
+      .filter((matches) => matches.length === 2)
+      .forEach(([key, value]) => Deno.env.set(key, value));
+  } catch (err) {
+    if (err instanceof Deno.errors.NotFound) {
+      return;
+    }
+    throw err;
+  }
+}
+
 async function main(): Promise<void> {
   if (await isCalledDirectly()) {
     console.error(`This script is meant to be executed via a symlink.
@@ -486,77 +576,50 @@ Please see https://github.com/hugojosefson/isolate-in-docker#readme for installa
   }
 
   const isolationPath: string = await createIsolation();
+  await createConfigReadme(isolationPath);
+  await readConfigFilesIntoEnv(isolationPath);
+
+  const port = Deno.env.get("PORT");
+  const emptyDir = resolve(isolationPath, "empty");
+  const homeDir = resolve(isolationPath, "home");
+  const actualHome = Deno.env.get("HOME");
+  const actualX11 = "/tmp/.X11-unix";
+  const actualDisplay = Deno.env.get("DISPLAY");
+  const cmd = [
+    ...["docker", "run"],
+    "--rm",
+    "--interactive",
+    "--init",
+    ...["-a", "stdin", "-a", "stdout", "-a", "stderr"],
+    ...(isTTY() && !isHusky() ? ["--tty"] : []),
+    ...["--name", getDockerName()],
+    ...["--hostname", getDockerHostname()],
+    ...["--net", getDockerNet()],
+    ...["--user", await getDockerUser()],
+    ...await getDockerWorkdirArgs(isolationPath),
+    ...["--volume", [emptyDir, emptyDir, "ro"].join(":")],
+    ...["--volume", [homeDir, actualHome].join(":")],
+    ...["--volume", [actualX11, actualX11].join(":")],
+    ...await getDockerceptionArgs(),
+    ...["--env", ["HOME", actualHome].join("=")],
+    ...["--env", ["DISPLAY", actualDisplay].join("=")],
+    ...(isStringNotEmpty(port) ? ["--env", `PORT`] : []),
+    ...await getDockerImage(),
+    ...getDockerExtraArgs(),
+    ...getDockerCmd(),
+    ...Deno.args,
+  ];
+
+  const process: Deno.Process = Deno.run({
+    cmd,
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+  });
+  const status = await process.status();
+  Deno.exit(status.code);
 }
 
 await main();
-
-/*
-
-# Configurable env variables
-readConfigFiles
-
-DOCKER_IMAGE="$(getDockerImage)"
-DOCKER_USER=$(getDockerUser)
-DOCKER_WORKDIR="$(getDockerWorkdir)"
-DOCKER_CMD="$(getDockerCmd)"
-DOCKER_EXTRA_ARGS="${DOCKER_EXTRA_ARGS:-}"
-DOCKER_HOSTNAME="${DOCKER_HOSTNAME:-${DOCKER_NAME:-$(basename "${DOCKER_WORKDIR}" | safeName)}}"
-DOCKER_NAME="${DOCKER_NAME:-$(echo $(basename "${DOCKER_WORKDIR}")-$(date --utc --iso-8601=seconds | sed -E 's/://g' | sed -E 's/\+0000/Z/g')-$(rand 4) | safeName)}"
-DOCKER_NET="${DOCKER_NET:-host}"
-
-if isTTY && ! isHusky "$@"; then
-  TTY_ARG="--tty"
-else
-  TTY_ARG=""
-fi
-
-if [[ ! -z "${PORT}" ]]; then
-  PORT_ARGS="--env PORT=${PORT}"
-else
-  PORT_ARGS=""
-fi
-
-if [[ "${DOCKER_WORKDIR}" == "/" ]]; then
-  DOCKER_WORKDIR_ARGS="--workdir /host-root --volume /:/host-root"
-else
-  mkdir -p ".isolate-in-docker/home${DOCKER_WORKDIR#"$HOME"}"
-  DOCKER_WORKDIR_ARGS="--workdir ${DOCKER_WORKDIR} --volume ${DOCKER_WORKDIR}:${DOCKER_WORKDIR}"
-fi
-
-exec docker run \
-  --rm \
-  --interactive \
-  --init \
-  -a stdin -a stdout -a stderr \
-  ${TTY_ARG} \
-  --name "${DOCKER_NAME}" \
-  --hostname "${DOCKER_HOSTNAME}" \
-  --user ${DOCKER_USER} \
-  ${DOCKER_WORKDIR_ARGS} \
-  --volume "$(pwd)/.isolate-in-docker/empty":"$(pwd)/.isolate-in-docker":ro \
-  --volume "$(pwd)/.isolate-in-docker/home":"${HOME}" \
-  --env HOME="${HOME}" \
-  --volume /tmp/.X11-unix:/tmp/.X11-unix \
-  --env DISPLAY="${DISPLAY}" \
-  ${PORT_ARGS} \
-  $(maybeDockerception) \
-  --net="${DOCKER_NET}" \
-  ${DOCKER_EXTRA_ARGS} \
-  ${DOCKER_IMAGE} \
-  ${DOCKER_CMD} "$@"
-
-
-
-
-function readConfigFiles() {
-  local configDir=".isolate-in-docker/config"
-  mkdir -p "${configDir}"
-  getConfigDirReadme > "${configDir}/README"
-  sourceFileIfExists "${configDir}/default.rc"
-  sourceFileIfExists "${configDir}/$(getLinkName).rc"
-}
-
-
-*/
 
 //🔚
