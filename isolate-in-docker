@@ -1,5 +1,5 @@
 #!/bin/sh
-// 2>/dev/null;DENO_VERSION_RANGE="^1.17.1";DENO_RUN_ARGS="--unstable --allow-run --allow-env --allow-read";: "Via https://github.com/hugojosefson/deno-shebang CC BY 4.0";set -e;V="$DENO_VERSION_RANGE";A="$DENO_RUN_ARGS";U="$(expr "$(echo "$V"|curl -Gso/dev/null -w%{url_effective} --data-urlencode @- "")" : '..\(.*\)...')";D="$(command -v deno||true)";t(){ d="$(mktemp)";rm "${d}";dirname "${d}";};f(){ m="$(command -v "$0"||true)";l="/* 2>/dev/null";! [ -z $m ]&&[ -r $m ]&&[ "$(head -c3 "$m")" = '#!/' ]&&(read x && read y &&[ "$x" = "#!/bin/sh" ]&&[ "$l" != "${y%"$l"*}" ])<"$m";};a(){ [ -n $D ];};s(){ a&&[ -x "$R/deno" ]&&[ "$R/deno" = "$D" ]&&return;deno eval "import{satisfies as e}from'https://deno.land/x/semver@v1.3.0/mod.ts';Deno.exit(e(Deno.version.deno,'$V')?0:1);">/dev/null 2>&1;};g(){ curl -sSfL "https://api.mattandre.ws/semver/github/denoland/deno/$U";};e(){ R="$(t)/deno-range-$V/bin";mkdir -p "$R";export PATH="$R:$PATH";[ -x "$R/deno" ]&&return;a&&s&&([ -L "$R/deno" ]||ln -s "$D" "$R/deno")&&return;v="$(g)";i="$(t)/deno-$v";[ -L "$R/deno" ]||ln -s "$i/bin/deno" "$R/deno";s && return;curl -fsSL https://deno.land/x/install/install.sh|DENO_INSTALL="$i" sh -s "$v">&2;};e;exec env ISOLATE_IN_DOCKER_EXEC_PATH="$0" deno run $A - "$@"<<'//🔚'
+// 2>/dev/null;DENO_VERSION_RANGE="^1.17.1";DENO_RUN_ARGS="--unstable --allow-run --allow-env --allow-read --allow-write";: "Via https://github.com/hugojosefson/deno-shebang CC BY 4.0";set -e;V="$DENO_VERSION_RANGE";A="$DENO_RUN_ARGS";U="$(expr "$(echo "$V"|curl -Gso/dev/null -w%{url_effective} --data-urlencode @- "")" : '..\(.*\)...')";D="$(command -v deno||true)";t(){ d="$(mktemp)";rm "${d}";dirname "${d}";};f(){ m="$(command -v "$0"||true)";l="/* 2>/dev/null";! [ -z $m ]&&[ -r $m ]&&[ "$(head -c3 "$m")" = '#!/' ]&&(read x && read y &&[ "$x" = "#!/bin/sh" ]&&[ "$l" != "${y%"$l"*}" ])<"$m";};a(){ [ -n $D ];};s(){ a&&[ -x "$R/deno" ]&&[ "$R/deno" = "$D" ]&&return;deno eval "import{satisfies as e}from'https://deno.land/x/semver@v1.3.0/mod.ts';Deno.exit(e(Deno.version.deno,'$V')?0:1);">/dev/null 2>&1;};g(){ curl -sSfL "https://api.mattandre.ws/semver/github/denoland/deno/$U";};e(){ R="$(t)/deno-range-$V/bin";mkdir -p "$R";export PATH="$R:$PATH";[ -x "$R/deno" ]&&return;a&&s&&([ -L "$R/deno" ]||ln -s "$D" "$R/deno")&&return;v="$(g)";i="$(t)/deno-$v";[ -L "$R/deno" ]||ln -s "$i/bin/deno" "$R/deno";s && return;curl -fsSL https://deno.land/x/install/install.sh|DENO_INSTALL="$i" sh -s "$v">&2;};e;exec env ISOLATE_IN_DOCKER_EXEC_PATH="$0" deno run $A - "$@"<<'//🔚'
 
 // This file is not meant to be executed directly.
 // It should be executed via a symlink, named the same as the executable you wish to execute inside the Docker image.
@@ -397,7 +397,9 @@ async function createIsolation(): Promise<string> {
   await migrateIfSymlink(resolve(oldIsolationPath, "home"));
   await migrateIfSymlink(resolve(oldIsolationPath, "config"));
   await moveIfExists(oldIsolationPath, isolationPath);
-  await Promise.all(["empty", "home", "config"].map(ensureDir));
+  await Promise.all(["empty", "home", "config"]
+    .map(dir => resolve(isolationPath, dir))
+    .map(ensureDir));
   if (await haveGit()) {
     await writeGitUserToConfig(isolationPath);
   }
@@ -434,7 +436,15 @@ async function writeGitUserToConfig(isolationPath: string): Promise<void> {
 }
 
 async function isSymlink(path: string): Promise<boolean> {
-  return (await Deno.lstat(path)).isSymlink;
+  try {
+    return (await Deno.lstat(path)).isSymlink;
+  }catch(err){
+    if (err instanceof Deno.errors.NotFound) {
+      return false;
+    }
+    throw err;
+
+  }
 }
 
 async function isDirectory(path: string): Promise<boolean> {
@@ -444,21 +454,30 @@ async function isDirectory(path: string): Promise<boolean> {
 /**
  * Migrates any symlinked directories from previous versions of isolate-in-docker.
  */
-async function migrateIfSymlink(path: string): Promise<void> {
-  const pathStat: Deno.FileInfo = await Deno.lstat(path);
-  if (pathStat.isSymlink) {
-    const targetDir = await readlinkF(path);
-    if (await isDirectory(targetDir)) {
-      await Deno.remove(path, { recursive: true });
-      await move(targetDir, path);
-    } else {
-      await move(path, path + ".old");
+async function migrateIfSymlink(correctPath: string): Promise<void> {
+  try {
+    const correctPathStat: Deno.FileInfo = await Deno.lstat(correctPath);
+    if (correctPathStat.isSymlink) {
+      const symlink = correctPath;
+      const symlinkTarget = await readlinkF(symlink);
+      if (await isDirectory(symlinkTarget)) {
+        const symlinkTargetDir = symlinkTarget;
+        await Deno.remove(symlink);
+        await move(symlinkTargetDir, correctPath);
+      } else {
+        await move(symlink, symlink + ".old");
+      }
+    } else if (!correctPathStat.isDirectory) {
+      await move(correctPath, correctPath + ".old");
     }
-  } else {
-    //  if (pathStat.TODO()) {
-    //  }
+  } catch (err) {
+    if (err instanceof Deno.errors.NotFound) {
+      return;
+    }
+    throw err;
   }
 }
+
 async function main(): Promise<void> {
   if (await isCalledDirectly()) {
     console.error(`This script is meant to be executed via a symlink.
@@ -472,21 +491,6 @@ Please see https://github.com/hugojosefson/isolate-in-docker#readme for installa
 await main();
 
 /*
-#
-function migrateIfSymlink() {
-  local name="${1}"
-  if [[ -L "${name}" ]]; then
-    local targetDir="$(readlink -f "${name}")"
-    if [[ -d "${targetDir}" ]]; then
-      rm -f "${name}"
-      mv "${targetDir}" "${name}"
-    else
-      mv "${name}" "${name}.old"
-    fi
-  elif exists "${name}" && [[ ! -d "${name}" ]]; then
-      mv "${name}" "${name}.old"
-  fi
-}
 
 # Configurable env variables
 readConfigFiles
