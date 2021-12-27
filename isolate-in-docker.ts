@@ -548,12 +548,18 @@ async function readConfigFilesIntoEnv(isolationPath: string): Promise<void> {
   );
 }
 
+function stripQuote(value: string): string {
+  return value
+    .replace(/^"(.+)"$/, "$1")
+    .replace(/^'(.+)'$/, "$1");
+}
+
 async function readConfigFileIntoEnvIfExists(path: string): Promise<void> {
   try {
     const contents: string = await Deno.readTextFile(path);
     const lines: string[] = contents.split("\n");
     lines
-      .map(String.prototype.trim)
+      .map((line) => line.trim())
       .filter((line: string) => !line.startsWith("#"))
       .filter((line: string) => line.includes("="))
       .map((line: string) => line.match(/^([^=]+)=(.*)/))
@@ -562,6 +568,7 @@ async function readConfigFileIntoEnvIfExists(path: string): Promise<void> {
       .map(([_line, ...matches]: string[]) => matches)
       .filter((matches) => matches.length === 2)
       .map((a) => a as [string, string])
+      .map(([key, value]) => [key, stripQuote(value)])
       .forEach(([key, value]) => Deno.env.set(key, value));
   } catch (err) {
     if (err instanceof Deno.errors.NotFound) {
@@ -601,8 +608,8 @@ async function main(): Promise<void> {
     ...["--env", ["HOME", actualHome].join("=")],
     ...["--env", ["DISPLAY", actualDisplay].join("=")],
     ...(isStringNotEmpty(port) ? ["--env", `PORT`] : []),
-    ...await getDockerImage(),
     ...getDockerExtraArgs(),
+    ...await getDockerImage(),
     ...getDockerCmd(),
     ...Deno.args,
   ];
@@ -611,9 +618,6 @@ async function main(): Promise<void> {
 
   const process: Deno.Process = Deno.run({
     cmd,
-    // stdin: Deno.stdin.rid,
-    // stdout: Deno.stdout.rid,
-    // stderr: Deno.stderr.rid,
   });
   const status = await process.status();
   Deno.exit(status.code);
