@@ -6,14 +6,14 @@
 
 // Documentation at https://github.com/hugojosefson/isolate-in-docker#readme
 
-import { readAll } from "https://deno.land/std@0.119.0/streams/conversion.ts";
-import cstring from "https://deno.land/x/cstring@v1.0/mod.js";
-import { basename, resolve } from "https://deno.land/std@0.119.0/path/mod.ts";
 import {
   ensureDir,
   ensureFile,
   move,
 } from "https://deno.land/std@0.119.0/fs/mod.ts";
+import { basename, resolve } from "https://deno.land/std@0.119.0/path/mod.ts";
+import { readAll } from "https://deno.land/std@0.119.0/streams/conversion.ts";
+import cstring from "https://deno.land/x/cstring@v1.0/mod.js";
 
 function s(a: unknown, indent = 0): string {
   return JSON.stringify(a, null, indent);
