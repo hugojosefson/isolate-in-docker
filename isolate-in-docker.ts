@@ -15,19 +15,19 @@ import { basename, resolve } from "https://deno.land/std@0.119.0/path/mod.ts";
 import { readAll } from "https://deno.land/std@0.119.0/streams/conversion.ts";
 import cstring from "https://deno.land/x/cstring@v1.0/mod.js";
 
-function s(a: unknown, indent = 0): string {
+export function s(a: unknown, indent = 0): string {
   return JSON.stringify(a, null, indent);
 }
 
-function isStringNotEmpty(value: unknown): value is string {
+export function isStringNotEmpty(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
-function trim(value = ""): string {
+export function trim(value = ""): string {
   return value.trim();
 }
 
-function requireEnv(envVariable: string): string {
+export function requireEnv(envVariable: string): string {
   const value = trim(Deno.env.get(envVariable));
   if (!isStringNotEmpty(value)) {
     throw new Error(
@@ -40,9 +40,12 @@ function requireEnv(envVariable: string): string {
 }
 
 // Default, if none specified in $NODE_VERSION nor in ./.nvmrc
-const DEFAULT_NODE_VERSION = "latest";
+export const DEFAULT_NODE_VERSION = "latest";
 
-async function run(cmd: string[], requireSuccess = true): Promise<string> {
+export async function run(
+  cmd: string[],
+  requireSuccess = true,
+): Promise<string> {
   const process: Deno.Process = Deno.run({ cmd, stdout: "piped" });
   if (requireSuccess && !(await process.status()).success) {
     throw new Error(`ERROR while running cmd: ${cmd}`);
@@ -53,7 +56,7 @@ async function run(cmd: string[], requireSuccess = true): Promise<string> {
     : new TextDecoder().decode(await readAll(process.stdout)).trim();
 }
 
-function assertNumber(value: unknown): value is number | never {
+export function assertNumber(value: unknown): value is number | never {
   if (typeof value === "number") {
     return true;
   }
@@ -61,7 +64,7 @@ function assertNumber(value: unknown): value is number | never {
 }
 
 // Docker arguments for allowing the container to access the host's docker engine, in case $DOCKERCEPTION is set.
-async function getDockerceptionArgs(): Promise<string[]> {
+export async function getDockerceptionArgs(): Promise<string[]> {
   if (!Deno.env.get("DOCKERCEPTION")) return [];
 
   const dockerSock = (await run([
@@ -80,19 +83,19 @@ async function getDockerceptionArgs(): Promise<string[]> {
   ];
 }
 
-function getLinkName(): string {
+export function getLinkName(): string {
   return basename(requireEnv("ISOLATE_IN_DOCKER_EXEC_PATH"));
 }
 
-function getDockerWorkdir(): string {
+export function getDockerWorkdir(): string {
   return Deno.env.get("DOCKER_WORKDIR") ?? Deno.cwd();
 }
 
-function rand(length = 32): string {
+export function rand(length = 32): string {
   return cstring(length);
 }
 
-function safeName(unsafeName: string): string {
+export function safeName(unsafeName: string): string {
   return `${unsafeName}`
     .trim()
     .replaceAll(/\n/g, "")
@@ -102,7 +105,7 @@ function safeName(unsafeName: string): string {
     .replaceAll(/[^a-zA-Z0-9_.-]/g, "_");
 }
 
-function getConfigDirReadme(): string {
+export function getConfigDirReadme(): string {
   return `-------------------------------------------------------------------------------
 Config dir for isolate-in-docker tools
 when in: ${Deno.cwd()}
@@ -123,12 +126,16 @@ before all isolate-in-docker tools, before the specific tool's config file.
 `;
 }
 
-async function getDockerUser(): Promise<string> {
+export async function getDockerUser(): Promise<string> {
   return Deno.env.get("DOCKER_USER") ??
     `${await run(["id", "-u"])}:${await run(["id", "-g"])}`;
 }
 
-async function getNodeVersion(): Promise<string> {
+export function isNotFoundError(err: unknown): err is Deno.errors.NotFound {
+  return err instanceof Deno.errors.NotFound;
+}
+
+export async function getNodeVersion(): Promise<string> {
   try {
     const fromEnv = Deno.env.get("NODE_VERSION");
     if (isStringNotEmpty(fromEnv)) {
@@ -146,7 +153,7 @@ async function getNodeVersion(): Promise<string> {
       return fromNvmrc;
     }
   } catch (err) {
-    if (!(err instanceof Deno.errors.NotFound)) {
+    if (!isNotFoundError(err)) {
       console.error(err);
     }
     // fall through to next
@@ -155,7 +162,7 @@ async function getNodeVersion(): Promise<string> {
   return DEFAULT_NODE_VERSION;
 }
 
-function getDockerCmd(): string[] {
+export function getDockerCmd(): string[] {
   const fromEnv = Deno.env.get("DOCKER_CMD");
   if (isStringNotEmpty(fromEnv)) {
     return fromEnv.split(" ");
@@ -171,7 +178,7 @@ function getDockerCmd(): string[] {
   return [linkName];
 }
 
-function getDockerExtraArgs(): string[] {
+export function getDockerExtraArgs(): string[] {
   const fromEnv = Deno.env.get("DOCKER_EXTRA_ARGS");
   if (isStringNotEmpty(fromEnv)) {
     return fromEnv.split(" ");
@@ -179,7 +186,7 @@ function getDockerExtraArgs(): string[] {
   return [];
 }
 
-async function getWebstormDockerImageDockerArgs(): Promise<string[]> {
+export async function getWebstormDockerImageDockerArgs(): Promise<string[]> {
   return [
     ...["--device", "/dev/dri:/dev/dri"],
     ...["--user", "root:root"],
@@ -190,7 +197,7 @@ async function getWebstormDockerImageDockerArgs(): Promise<string[]> {
   ];
 }
 
-async function getDockerImage(): Promise<string[]> {
+export async function getDockerImage(): Promise<string[]> {
   const fromEnv = Deno.env.get("DOCKER_IMAGE");
   if (isStringNotEmpty(fromEnv)) {
     return [fromEnv];
@@ -315,14 +322,14 @@ async function getDockerImage(): Promise<string[]> {
 /**
  * Are we in a TTY?
  */
-function isTTY(): boolean {
+export function isTTY(): boolean {
   return Deno.isatty(Deno.stdin.rid);
 }
 
 /**
  * Are they running husky?
  */
-function isHusky(): boolean {
+export function isHusky(): boolean {
   const huskyArg: string | undefined = Deno.args.find((arg) =>
     arg.includes("node_modules/husky/run.js")
   );
@@ -332,7 +339,7 @@ function isHusky(): boolean {
 /**
  * Do we have git installed?
  */
-async function haveGit(): Promise<boolean> {
+export async function haveGit(): Promise<boolean> {
   try {
     await run(["git", "--version"]);
     return true;
@@ -344,15 +351,18 @@ async function haveGit(): Promise<boolean> {
 /**
  * Is current directory a git repo?
  */
-async function isGitRepo(): Promise<boolean> {
+export async function isGitRepo(): Promise<boolean> {
   try {
     return (await Deno.stat(resolve(Deno.cwd(), ".git"))).isDirectory;
-  } catch (_ignore) {
-    return false;
+  } catch (err) {
+    if (isNotFoundError(err)) {
+      return false;
+    }
+    throw err;
   }
 }
 
-async function readlinkF(
+export async function readlinkF(
   path: string,
   alreadyVisited: string[] = [],
 ): Promise<string> {
@@ -368,19 +378,22 @@ async function readlinkF(
   ]);
 }
 
-async function moveIfExists(oldPath: string, newPath: string): Promise<void> {
+export async function moveIfExists(
+  oldPath: string,
+  newPath: string,
+): Promise<void> {
   try {
     await ensureDir(resolve(newPath, ".."));
     await move(oldPath, newPath);
   } catch (err) {
-    if (err instanceof Deno.errors.NotFound) {
+    if (isNotFoundError(err)) {
       return;
     }
     throw err;
   }
 }
 
-async function createIsolation(): Promise<string> {
+export async function createIsolation(): Promise<string> {
   if (!await isGitRepo()) {
     await run(["git", "init"]);
   }
@@ -405,7 +418,7 @@ async function createIsolation(): Promise<string> {
   return isolationPath;
 }
 
-function gitConfigForFile(gitConfigFile: string) {
+export function gitConfigForFile(gitConfigFile: string) {
   return async function gitConfig(
     args: string[],
     requireSuccess: boolean,
@@ -420,7 +433,9 @@ function gitConfigForFile(gitConfigFile: string) {
 /**
  * Write current git user config to ${isolationPath}/home/.gitconfig, so it is visible inside the Docker container.
  */
-async function writeGitUserToConfig(isolationPath: string): Promise<void> {
+export async function writeGitUserToConfig(
+  isolationPath: string,
+): Promise<void> {
   const gitEmail = await run("git config user.email".split(" "));
   const gitName = await run("git config user.name".split(" "));
 
@@ -434,25 +449,32 @@ async function writeGitUserToConfig(isolationPath: string): Promise<void> {
   await gitConfig(["--add", "user.name", gitName], true);
 }
 
-async function isSymlink(path: string): Promise<boolean> {
+export async function isSymlink(path: string): Promise<boolean> {
   try {
     return (await Deno.lstat(path)).isSymlink;
   } catch (err) {
-    if (err instanceof Deno.errors.NotFound) {
+    if (isNotFoundError(err)) {
       return false;
     }
     throw err;
   }
 }
 
-async function isDirectory(path: string): Promise<boolean> {
-  return (await Deno.lstat(path)).isDirectory;
+export async function isDirectory(path: string): Promise<boolean> {
+  try {
+    return (await Deno.lstat(path)).isDirectory;
+  } catch (err) {
+    if (isNotFoundError(err)) {
+      return false;
+    }
+    throw err;
+  }
 }
 
 /**
  * Migrates any symlinked directories from previous versions of isolate-in-docker.
  */
-async function migrateIfSymlink(correctPath: string): Promise<void> {
+export async function migrateIfSymlink(correctPath: string): Promise<void> {
   try {
     const correctPathStat: Deno.FileInfo = await Deno.lstat(correctPath);
     if (correctPathStat.isSymlink) {
@@ -469,14 +491,16 @@ async function migrateIfSymlink(correctPath: string): Promise<void> {
       await move(correctPath, correctPath + ".old");
     }
   } catch (err) {
-    if (err instanceof Deno.errors.NotFound) {
+    if (isNotFoundError(err)) {
       return;
     }
     throw err;
   }
 }
 
-async function getDockerWorkdirArgs(isolationPath: string): Promise<string[]> {
+export async function getDockerWorkdirArgs(
+  isolationPath: string,
+): Promise<string[]> {
   const dockerWorkdir = getDockerWorkdir();
   if (dockerWorkdir === "/") {
     return ["--workdir", "/host-root", "--volume", "/:/host-root"];
@@ -489,7 +513,7 @@ async function getDockerWorkdirArgs(isolationPath: string): Promise<string[]> {
   }
 }
 
-function getDockerName(): string {
+export function getDockerName(): string {
   const fromEnv = Deno.env.get("DOCKER_NAME");
   if (isStringNotEmpty(fromEnv)) {
     return fromEnv;
@@ -503,7 +527,8 @@ function getDockerName(): string {
   const random = rand(4);
   return safeName([dirName, date, random].join("-"));
 }
-function getDockerHostname(): string {
+
+export function getDockerHostname(): string {
   const fromEnv1 = Deno.env.get("DOCKER_HOSTNAME");
   if (isStringNotEmpty(fromEnv1)) {
     return fromEnv1;
@@ -519,7 +544,7 @@ function getDockerHostname(): string {
   return safeName(dirName);
 }
 
-function getDockerNet(): string {
+export function getDockerNet(): string {
   const fromEnv = Deno.env.get("DOCKER_NET");
   if (isStringNotEmpty(fromEnv)) {
     return fromEnv;
@@ -528,7 +553,7 @@ function getDockerNet(): string {
   return "host";
 }
 
-async function createConfigReadme(isolationPath: string): Promise<void> {
+export async function createConfigReadme(isolationPath: string): Promise<void> {
   const configDir = resolve(isolationPath, "config");
   await ensureDir(configDir);
   await Deno.writeTextFile(resolve(configDir, "README"), getConfigDirReadme());
@@ -537,7 +562,9 @@ async function createConfigReadme(isolationPath: string): Promise<void> {
 /**
  * Configurable env variables
  */
-async function readConfigFilesIntoEnv(isolationPath: string): Promise<void> {
+export async function readConfigFilesIntoEnv(
+  isolationPath: string,
+): Promise<void> {
   const configDir = resolve(isolationPath, "config");
   await readConfigFileIntoEnvIfExists(resolve(configDir, "default.rc"));
   await readConfigFileIntoEnvIfExists(
@@ -545,13 +572,15 @@ async function readConfigFilesIntoEnv(isolationPath: string): Promise<void> {
   );
 }
 
-function stripQuote(value: string): string {
+export function stripQuote(value: string): string {
   return value
     .replace(/^"(.+)"$/, "$1")
     .replace(/^'(.+)'$/, "$1");
 }
 
-async function readConfigFileIntoEnvIfExists(path: string): Promise<void> {
+export async function readConfigFileIntoEnvIfExists(
+  path: string,
+): Promise<void> {
   try {
     const contents: string = await Deno.readTextFile(path);
     const lines: string[] = contents.split("\n");
@@ -568,14 +597,14 @@ async function readConfigFileIntoEnvIfExists(path: string): Promise<void> {
       .map(([key, value]) => [key, stripQuote(value)])
       .forEach(([key, value]) => Deno.env.set(key, value));
   } catch (err) {
-    if (err instanceof Deno.errors.NotFound) {
+    if (isNotFoundError(err)) {
       return;
     }
     throw err;
   }
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const isolationPath: string = await createIsolation();
   await createConfigReadme(isolationPath);
   await readConfigFilesIntoEnv(isolationPath);
@@ -611,13 +640,16 @@ async function main(): Promise<void> {
     ...Deno.args,
   ];
 
-  console.error(s({ cmd }, 2));
-
   const process: Deno.Process = Deno.run({
     cmd,
   });
   const status = await process.status();
+  if (!status.success) {
+    console.error(s({ cmd }, 2));
+  }
   Deno.exit(status.code);
 }
 
-await main();
+if (import.meta.main) {
+  await main();
+}
