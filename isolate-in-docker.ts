@@ -23,10 +23,7 @@ function isStringNotEmpty(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
-function trim(value?: string): string {
-  if (typeof value === "undefined") {
-    return "";
-  }
+function trim(value = ""): string {
   return value.trim();
 }
 
