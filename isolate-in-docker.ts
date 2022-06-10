@@ -228,6 +228,11 @@ export async function getDockerImage(): Promise<string[]> {
         ...await getWebstormDockerImageDockerArgs(),
         "hugojosefson/webstorm",
       ];
+    case "chromium":
+      return [
+        ...await getWebstormDockerImageDockerArgs(),
+        "hugojosefson/chromium",
+      ];
     case "goland":
     case "jetbrains-toolbox":
       return [
