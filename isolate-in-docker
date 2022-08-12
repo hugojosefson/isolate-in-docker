@@ -198,27 +198,27 @@ getDockerImage() {
   elif [[ "$(getLinkName)" =~ ^(firefox40)$ ]]; then
     echo "\
       --device /dev/dri:/dev/dri \
-      netcapsule/firefox \
+      docker.io/netcapsule/firefox \
     "
   elif [[ "$(getLinkName)" =~ ^(webstorm|webstorm-install-rust|clion)$ ]]; then
     echo "\
       --device /dev/dri:/dev/dri \
       --user root:root \
-      --env USER_ID=$(id -u) \
-      --env USER_NAME=$(id -un) \
-      --env GROUP_ID=$(id -g) \
-      --env GROUP_NAME=$(id -gn) \
-      hugojosefson/webstorm \
+      --env USER_ID=${USER_ID:-$(id -u)} \
+      --env USER_NAME=${USER_NAME:-$(id -un)} \
+      --env GROUP_ID=${GROUP_ID:-$(id -g)} \
+      --env GROUP_NAME=${GROUP_NAME:-$(id -gn)} \
+      docker.io/hugojosefson/webstorm \
     "
   elif [[ "$(getLinkName)" =~ ^(goland|jetbrains-toolbox)$ ]]; then
     echo "\
       --device /dev/dri:/dev/dri \
       --user root:root \
-      --env USER_ID=$(id -u) \
-      --env USER_NAME=$(id -un) \
-      --env GROUP_ID=$(id -g) \
-      --env GROUP_NAME=$(id -gn) \
-      hugojosefson/goland \
+      --env USER_ID=${USER_ID:-$(id -u)} \
+      --env USER_NAME=${USER_NAME:-$(id -un)} \
+      --env GROUP_ID=${GROUP_ID:-$(id -g)} \
+      --env GROUP_NAME=${GROUP_NAME:-$(id -gn)} \
+      docker.io/hugojosefson/goland \
     "
   elif [[ "$(getLinkName)" =~ ^(pulseUi)$ ]]; then
     echo "\
@@ -228,35 +228,35 @@ getDockerImage() {
       --device /dev/net/tun:/dev/net/tun \
       --device /dev/dri:/dev/dri \
       --user root:root \
-      --env USER_ID=$(id -u) \
-      --env USER_NAME=$(id -un) \
-      --env GROUP_ID=$(id -g) \
-      --env GROUP_NAME=$(id -gn) \
-      hugojosefson/pulsevpn \
+      --env USER_ID=${USER_ID:-$(id -u)} \
+      --env USER_NAME=${USER_NAME:-$(id -un)} \
+      --env GROUP_ID=${GROUP_ID:-$(id -g)} \
+      --env GROUP_NAME=${GROUP_NAME:-$(id -gn)} \
+      docker.io/hugojosefson/pulsevpn \
     "
   elif [[ "$(getLinkName)" =~ ^(git-revise)$ ]]; then
-    echo "-v \"${HOME}/.gitconfig\":\"${HOME}/.gitconfig\":ro hugojosefson/git-revise"
+    echo "-v \"${HOME}/.gitconfig\":\"${HOME}/.gitconfig\":ro docker.io/hugojosefson/git-revise"
   elif [[ "$(getLinkName)" =~ ^(signal-desktop)$ ]]; then
     echo "\
       --device /dev/dri:/dev/dri \
       --user root:root \
-      --env USER_ID=$(id -u) \
-      --env USER_NAME=$(id -un) \
-      --env GROUP_ID=$(id -g) \
-      --env GROUP_NAME=$(id -gn) \
-      hugojosefson/signal-desktop \
+      --env USER_ID=${USER_ID:-$(id -u)} \
+      --env USER_NAME=${USER_NAME:-$(id -un)} \
+      --env GROUP_ID=${GROUP_ID:-$(id -g)} \
+      --env GROUP_NAME=${GROUP_NAME:-$(id -gn)} \
+      docker.io/hugojosefson/signal-desktop \
     "
   elif [[ "$(getLinkName)" =~ ^(aws)$ ]]; then
-    echo "mikesir87/aws-cli"
+    echo "docker.io/mikesir87/aws-cli"
   elif [[ "$(getLinkName)" =~ ^(heroku)$ ]]; then
-    echo "dickeyxxx/heroku-cli"
+    echo "docker.io/dickeyxxx/heroku-cli"
   elif [[ "$(getLinkName)" =~ ^(mvn|jaotc|jar|jarsigner|java|javac|javadoc|javap|jcmd|jconsole|jdb|jdeprscan|jdeps|jhsdb|jimage|jinfo|jjs|jlink|jmap|jmod|jps|jrunscript|jshell|jstack|jstat|jstatd|keytool|pack200|rmic|rmid|rmiregistry|serialver|unpack200)$ ]]; then
     echo "\
       --device /dev/urandom:/dev/urandom \
-      maven \
+      docker.io/maven \
     "
   elif [[ "$(getLinkName)" =~ ^(cargo|cargo-clippy|cargo-fmt|cargo-miri|clippy-driver|rls|rust-gdb|rust-lldb|rustc|rustdoc|rustfmt|rustup)$ ]]; then
-    echo "rust"
+    echo "docker.io/rust"
   else
     echo "Unknown symlink name: \'$(getLinkName)\'" >&2
     exit 1
